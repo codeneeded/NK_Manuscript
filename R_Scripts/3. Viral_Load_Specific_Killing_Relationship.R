@@ -224,3 +224,169 @@ ggplot(data_HEI, aes(x = `viral load`, y = `Specific Killing`)) +
 ggsave("TARA_Specific_Killing_vs_Viral_Load_Scatterplot_spearmens.png", width = 10, height = 8, dpi = 300,bg='white')
 
 ### Corrplots
+
+######### Plot Specific Killing for each Group #############
+
+### TARA
+
+####### Paired Correlation for Specific Killing
+hut78_data_TARA <- tara_Freq_plot_filtered %>%
+  filter(Treatment == "HUT78")
+k562_data_TARA <- tara_Freq_plot_filtered %>%
+  filter(Treatment == "K562")
+
+# Define a function to calculate correlations
+calculate_correlations <- function(data, target_var = "Specific Killing") {
+  results <- data.frame(Variable = character(), Correlation = numeric(), P_value = numeric(), stringsAsFactors = FALSE)
+  
+  # List of columns to correlate with Specific Killing (viral load and columns after 19)
+  cols_to_check <- c(8, 20:ncol(data))
+  
+  # Loop through each column
+  for (col in cols_to_check) {
+    var_name <- colnames(data)[col]
+    correlation_test <- cor.test(data[[var_name]], data[[target_var]], method = "spearman")
+    
+    # Store the results
+    results <- rbind(results, data.frame(
+      Variable = var_name,
+      Correlation = correlation_test$estimate,
+      P_value = correlation_test$p.value
+    ))
+  }
+  
+  return(results)
+}
+
+# Modify the function to calculate correlations with viral load
+calculate_correlations_with_viral_load <- function(data, target_var = "viral load") {
+  results <- data.frame(Variable = character(), Correlation = numeric(), P_value = numeric(), stringsAsFactors = FALSE)
+  
+  # List of columns to correlate with viral load (all columns after 19)
+  cols_to_check <- 20:ncol(data)
+  
+  # Loop through each column
+  for (col in cols_to_check) {
+    var_name <- colnames(data)[col]
+    correlation_test <- cor.test(data[[var_name]], data[[target_var]], method = "spearman")
+    
+    # Store the results
+    results <- rbind(results, data.frame(
+      Variable = var_name,
+      Correlation = correlation_test$estimate,
+      P_value = correlation_test$p.value
+    ))
+  }
+  
+  return(results)
+}
+
+# Define the plotting function
+plot_correlations <- function(correlations, title) {
+  ggplot(correlations, aes(x = reorder(Variable, Correlation), y = Correlation, fill = P_value < 0.05)) +
+    geom_bar(stat = "identity", width = 0.7) +
+    coord_flip() +  # Flip coordinates for better readability
+    labs(
+      title = title,
+      x = "Variable",
+      y = "Spearman Correlation with Specific Killing"
+    ) +
+    scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "lightgrey"), name = "Significance", labels = c("p < 0.05", "p >= 0.05")) +
+    theme_minimal(base_size = 15) +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+      axis.title.x = element_text(size = 14),
+      axis.title.y = element_text(size = 14),
+      axis.text.x = element_text(size = 12),
+      axis.text.y = element_text(size = 12)
+    )
+}
+
+
+# Run the correlation function on HUT78 and K562 datasets
+hut78_correlations <- calculate_correlations(hut78_data_TARA)
+k562_correlations <- calculate_correlations(k562_data_TARA)
+
+
+plot_correlations(hut78_correlations, "Correlation of Variables with Specific Killing (HUT78)")
+ggsave("TARA_HUT78_Corr_barplot_vs_Specific_Killing.png", width = 10, height = 15, dpi = 300,bg='white')
+
+plot_correlations(k562_correlations, "Correlation of Variables with Specific Killing (K562)")
+ggsave("TARA_K562_Corr_barplot_vs_Specific_Killing.png", width = 10, height = 15, dpi = 300,bg='white')
+
+# Run the correlation function on HUT78 and K562 datasets
+hut78_correlations_with_viral_load <- calculate_correlations_with_viral_load(hut78_data_TARA)
+k562_correlations_with_viral_load <- calculate_correlations_with_viral_load(k562_data_TARA)
+
+# Define the plotting function for viral load correlations
+plot_correlations <- function(correlations, title) {
+  ggplot(correlations, aes(x = reorder(Variable, Correlation), y = Correlation, fill = P_value < 0.05)) +
+    geom_bar(stat = "identity", width = 0.7) +
+    coord_flip() +  # Flip coordinates for better readability
+    labs(
+      title = title,
+      x = "Variable",
+      y = "Spearman Correlation with Viral Load"
+    ) +
+    scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "lightgrey"), name = "Significance", labels = c("p < 0.05", "p >= 0.05")) +
+    theme_minimal(base_size = 15) +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+      axis.title.x = element_text(size = 14),
+      axis.title.y = element_text(size = 14),
+      axis.text.x = element_text(size = 12),
+      axis.text.y = element_text(size = 12)
+    )
+}
+
+# Example usage for HUT78 and K562 data with viral load
+plot_correlations(hut78_correlations_with_viral_load, "Correlation of Variables with Viral Load (HUT78)")
+ggsave("TARA_HUT78_Corr_barplot_vs_VL.png", width = 10, height = 15, dpi = 300,bg='white')
+
+plot_correlations(k562_correlations_with_viral_load, "Correlation of Variables with Viral Load (K562)")
+ggsave("TARA_K562_Corr_barplot_vs_VL.png", width = 10, height = 15, dpi = 300,bg='white')
+
+### FLORAH
+
+setwd("C:/Users/axi313/Documents/NK_Manuscript/Correlations/FLORAH")
+
+####### Paired Correlation for Specific Killing
+hut78_data_f <- florah_Freq_plot_filtered %>%
+  filter(Treatment == "HUT78")
+k562_data_f <- florah_Freq_plot_filtered %>%
+  filter(Treatment == "K562")
+
+# Function to calculate correlations with Specific Killing
+calculate_correlations_with_specific_killing <- function(data, target_var = "Specific Killing") {
+  results <- data.frame(Variable = character(), Correlation = numeric(), P_value = numeric(), stringsAsFactors = FALSE)
+  
+  # List of columns to correlate with Specific Killing (all columns after 19)
+  cols_to_check <- 20:ncol(data)
+  
+  # Loop through each column
+  for (col in cols_to_check) {
+    var_name <- colnames(data)[col]
+    correlation_test <- cor.test(data[[var_name]], data[[target_var]], method = "spearman")
+    
+    # Store the results
+    results <- rbind(results, data.frame(
+      Variable = var_name,
+      Correlation = correlation_test$estimate,
+      P_value = correlation_test$p.value
+    ))
+  }
+  
+  return(results)
+}
+
+# Run the correlation function on HUT78 and K562 datasets in florah
+hut78_correlations_with_specific_killing <- calculate_correlations_with_specific_killing(hut78_data_f)
+k562_correlations_with_specific_killing <- calculate_correlations_with_specific_killing(k562_data_f)
+
+# Plot for HUT78 and K562 correlations with Specific Killing in florah
+plot_correlations(hut78_correlations_with_specific_killing, "Correlation of Variables with Specific Killing (HUT78)")
+ggsave("FLORAH_HUT78_Corr_barplot_vs_Specific_Killing.png", width = 10, height = 17, dpi = 300,bg='white')
+
+plot_correlations(k562_correlations_with_specific_killing, "Correlation of Variables with Specific Killing (K562)")
+ggsave("FLORAH_K562_Corr_barplot_vs_Specific_Killing.png", width = 10, height = 17, dpi = 300,bg='white')
+
