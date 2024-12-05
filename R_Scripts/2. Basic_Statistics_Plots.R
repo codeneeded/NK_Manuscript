@@ -403,11 +403,128 @@ ggplot(nkiller_plot.2, aes(x = Group, y = `NKdim_CD16+`, fill = Group)) +
 ggsave(paste0(out.path.2,"HEIvsHEU_CD56dimCD16+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
 
 
-################################
+################################ Correlate Viral Load with Variables ##########
+
+### Select Viral Load Only
+
+nkiller_HEI <- nkiller_plot %>%
+  filter(Group == 'HEI')
+
+#### CORR FUNCTIONS ############
+#
+# Function to calculate correlations
+calculate_correlations <- function(data, target_var, cols_to_check) {
+  # Create an empty results data frame
+  results <- data.frame(
+    Variable = character(),
+    Correlation = numeric(),
+    P_value = numeric(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Loop through the columns to check correlations
+  for (col in cols_to_check) {
+    var_name <- colnames(data)[col]
+    correlation_test <- cor.test(data[[var_name]], data[[target_var]], method = "spearman")
+    
+    # Store the results
+    results <- rbind(results, data.frame(
+      Variable = var_name,
+      Correlation = correlation_test$estimate,
+      P_value = correlation_test$p.value
+    ))
+  }
+  
+  # Return the results
+  return(results)
+}
+
+# Function to plot significant correlations
+plot_significant_correlations <- function(correlations, title) {
+  # Filter significant correlations
+  significant_correlations <- correlations %>%
+    filter(P_value < 0.05) %>%
+    mutate(
+      Direction = ifelse(Correlation > 0, "Positive", "Negative")
+    )
+  
+  # Plot the significant correlations
+  ggplot(significant_correlations, aes(x = reorder(Variable, Correlation), y = Correlation, fill = Direction)) +
+    geom_bar(stat = "identity", width = 0.7) +
+    coord_flip() +  # Flip coordinates for better readability
+    labs(
+      title = title,
+      x = "Variable",
+      y = "Spearman Correlation"
+    ) +
+    scale_fill_manual(values = c("Positive" = "#5ab4ac", "Negative" = "#d8b365"), name = "Direction") +
+    theme_minimal(base_size = 15) +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+      axis.title.x = element_text(size = 14),
+      axis.title.y = element_text(size = 14),
+      axis.text.x = element_text(size = 12),
+      axis.text.y = element_text(size = 12)
+    )
+}
 
 
 
 
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Correlations/TARA/Viral_Load_HEI_Only/All_TP_Dataset")
+data_cols <- 7:(ncol(nkiller_HEI)-1)
+correlations_VL_Untreated <- calculate_correlations(nkiller_HEI, "Viral Titre", data_cols)
+
+# Step 2: Plot the significant correlations
+plot_VL_Untreated <- plot_significant_correlations(
+  correlations_VL_Untreated,
+  "Significant Correlations with Viral Load - Untreated"
+)
+
+# Step 3: Save the plot
+ggsave(
+  filename = "HEI_Untreated_Viral_Load_Correlations_Combined_Timepoints.png",
+  plot = plot_VL_Untreated,
+  width = 10,
+  height = 8,
+  bg='white',
+  dpi = 300
+)
+
+###### Split by Timepoint
+
+for (timepoint in unique(nkiller_HEI$timepoint.2)) {
+  # Filter data for the current timepoint
+  timepoint_data <- nkiller_HEI %>%
+    filter(timepoint.2 == timepoint)
+  
+  # Step 2: Calculate correlations for Viral Load
+  correlations_VL_timepoint <- calculate_correlations(timepoint_data, "Viral Titre", data_cols)
+  
+  # Step 3: Plot the significant correlations
+  plot_VL_timepoint <- plot_significant_correlations(
+    correlations_VL_timepoint,
+    paste("Significant Correlations with Viral Load - Untreated - Timepoint", timepoint)
+  )
+  
+  # Step 4: Save the plot
+  ggsave(
+    filename = paste0("HEI_Untreated_Viral_Load_Correlations_Timepoint_", timepoint, ".png"),
+    plot = plot_VL_timepoint,
+    width = 10,
+    height = 8,
+    bg = 'white',
+    dpi = 300
+  )
+}
+
+
+
+
+
+
+
+#################################
 ### Compare viral Load with variables
 
 nkiller_plot <- nkiller_plot %>%
