@@ -19,8 +19,8 @@ library(extrafont)
 loadfonts(device = "win")
 
 ############################################ Global Variables #######################################################
-setwd("C:/Users/axi313/Documents/NK_Manuscript")
-in.path <-"C:/Users/axi313/Documents/NK_Manuscript/Saved_R_Data/"
+setwd("C:/Users/ammas/Documents/NK_Manuscript")
+in.path <-"C:/Users/ammas/Documents/NK_Manuscript/Saved_R_Data/"
 
 load(paste0(in.path,"tara_freq_clean.RDS"))
 load(paste0(in.path,"florah_freq_clean.RDS"))
@@ -32,7 +32,7 @@ load(paste0(in.path,"florah_freq_clean.RDS"))
 ######## Paired Plots #####
 # Plot the updated data
 
-setwd("C:/Users/axi313/Documents/NK_Killing_Differential_Abundance_Analysis_HIV/Paired_Plots")
+setwd("C:/Users/ammas/Documents/NK_Killing_Differential_Abundance_Analysis_HIV/Paired_Plots")
 
 ### Cleaning 
 
@@ -117,7 +117,7 @@ plot_with_p_values <- function(data, y_var) {
     ), color = "black", size = 4)
 }
 
-setwd("C:/Users/axi313/Documents/NK_Manuscript/Paired_Plots/TARA")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Paired_Plots/TARA")
 
 plot_with_p_values(tara_Freq_plot_filtered_2, "Specific Killing")
 ggsave("Specific_Killing_Paired_Plot.png", width = 10, height = 8, dpi = 300,bg='white')
@@ -174,7 +174,7 @@ plot_specific_killing_comparison <- function(data, y_var, title = NULL) {
                        label = "p.format", 
                        label.y = max(data[[y_var]], na.rm = TRUE) * 1.1)
 }
-setwd("C:/Users/axi313/Documents/NK_Manuscript/Boxplots/Specific_Killing")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Boxplots/Specific_Killing")
 
 plot_specific_killing_comparison(tara_Freq_plot_filtered_2, "Specific Killing", title = "Specific Killing by HIV Status (TARA)")
 ggsave("TARA_Specific_Killing_Barplot_by_Treatment.png", width = 10, height = 8, dpi = 300,bg='white')
@@ -182,9 +182,10 @@ ggsave("TARA_Specific_Killing_Barplot_by_Treatment.png", width = 10, height = 8,
 plot_specific_killing_comparison(florah_Freq_plot_filtered_2, "Specific Killing", title = "Specific Killing by HIV Status (FLORAH)")
 ggsave("FLORAH_Specific_Killing_Barplot_by_Treatment.png", width = 10, height = 8, dpi = 300,bg='white')
 
+########################################### Correlations ####################################
 
 #### Plot the relationship between viral load.
-setwd("C:/Users/axi313/Documents/NK_Manuscript/Correlations/TARA")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Correlations/TARA")
 
 # Scale viral load for the HEI subset
 data_HEI <- tara_Freq_plot_filtered_2 %>%
@@ -223,26 +224,24 @@ ggplot(data_HEI, aes(x = `viral load`, y = `Specific Killing`)) +
   ), hjust = 0.5, vjust = 1.5, size = 4, color = "black")
 ggsave("TARA_Specific_Killing_vs_Viral_Load_Scatterplot_spearmens.png", width = 10, height = 8, dpi = 300,bg='white')
 
-### Corrplots
 
 ######### Plot Specific Killing for each Group #############
 
 ### TARA
 
-####### Paired Correlation for Specific Killing
-hut78_data_TARA <- tara_Freq_plot_filtered %>%
-  filter(Treatment == "HUT78")
-k562_data_TARA <- tara_Freq_plot_filtered %>%
-  filter(Treatment == "K562")
 
-# Define a function to calculate correlations
-calculate_correlations <- function(data, target_var = "Specific Killing") {
-  results <- data.frame(Variable = character(), Correlation = numeric(), P_value = numeric(), stringsAsFactors = FALSE)
+#### CORR FUNCTIONS #############
+# Function to calculate correlations
+calculate_correlations <- function(data, target_var, cols_to_check) {
+  # Create an empty results data frame
+  results <- data.frame(
+    Variable = character(),
+    Correlation = numeric(),
+    P_value = numeric(),
+    stringsAsFactors = FALSE
+  )
   
-  # List of columns to correlate with Specific Killing (viral load and columns after 19)
-  cols_to_check <- c(8, 20:ncol(data))
-  
-  # Loop through each column
+  # Loop through the columns to check correlations
   for (col in cols_to_check) {
     var_name <- colnames(data)[col]
     correlation_test <- cor.test(data[[var_name]], data[[target_var]], method = "spearman")
@@ -255,43 +254,29 @@ calculate_correlations <- function(data, target_var = "Specific Killing") {
     ))
   }
   
+  # Return the results
   return(results)
 }
 
-# Modify the function to calculate correlations with viral load
-calculate_correlations_with_viral_load <- function(data, target_var = "viral load") {
-  results <- data.frame(Variable = character(), Correlation = numeric(), P_value = numeric(), stringsAsFactors = FALSE)
+# Function to plot significant correlations
+plot_significant_correlations <- function(correlations, title) {
+  # Filter significant correlations
+  significant_correlations <- correlations %>%
+    filter(P_value < 0.05) %>%
+    mutate(
+      Direction = ifelse(Correlation > 0, "Positive", "Negative")
+    )
   
-  # List of columns to correlate with viral load (all columns after 19)
-  cols_to_check <- 20:ncol(data)
-  
-  # Loop through each column
-  for (col in cols_to_check) {
-    var_name <- colnames(data)[col]
-    correlation_test <- cor.test(data[[var_name]], data[[target_var]], method = "spearman")
-    
-    # Store the results
-    results <- rbind(results, data.frame(
-      Variable = var_name,
-      Correlation = correlation_test$estimate,
-      P_value = correlation_test$p.value
-    ))
-  }
-  
-  return(results)
-}
-
-# Define the plotting function
-plot_correlations <- function(correlations, title) {
-  ggplot(correlations, aes(x = reorder(Variable, Correlation), y = Correlation, fill = P_value < 0.05)) +
+  # Plot the significant correlations
+  ggplot(significant_correlations, aes(x = reorder(Variable, Correlation), y = Correlation, fill = Direction)) +
     geom_bar(stat = "identity", width = 0.7) +
     coord_flip() +  # Flip coordinates for better readability
     labs(
       title = title,
       x = "Variable",
-      y = "Spearman Correlation with Specific Killing"
+      y = "Spearman Correlation"
     ) +
-    scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "lightgrey"), name = "Significance", labels = c("p < 0.05", "p >= 0.05")) +
+    scale_fill_manual(values = c("Positive" = "#5ab4ac", "Negative" = "#d8b365"), name = "Direction") +
     theme_minimal(base_size = 15) +
     theme(
       plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
@@ -302,10 +287,156 @@ plot_correlations <- function(correlations, title) {
     )
 }
 
+####### Paired Correlation for Specific Killing
+tara_Freq_plot_filtered$Treatment <- droplevels(tara_Freq_plot_filtered$Treatment)
+tara_Freq_plot_filtered$Treatment
 
-# Run the correlation function on HUT78 and K562 datasets
-hut78_correlations <- calculate_correlations(hut78_data_TARA)
-k562_correlations <- calculate_correlations(k562_data_TARA)
+data_cols <- 19:ncol(tara_Freq_plot_filtered)
+
+# Define treatments and initialize the results list
+treatments <- levels(tara_Freq_plot_filtered$Treatment)
+correlation_results <- list()
+
+# Loop through each treatment and calculate correlations
+for (treatment in treatments) {
+  # Filter data for the current treatment
+  treatment_data <- tara_Freq_plot_filtered %>%
+    filter(Treatment == treatment)
+  
+  # Calculate correlations for Specific Killing
+  correlations_SK <- calculate_correlations(treatment_data, "Specific Killing", data_cols)
+  
+  # Calculate correlations for Viral Load
+  correlations_VL <- calculate_correlations(treatment_data, "viral load", data_cols)
+  
+  # Save the results in the list
+  correlation_results[[treatment]] <- list(
+    Specific_Killing = correlations_SK,
+    Viral_Load = correlations_VL
+  )
+}
+
+### PLOT
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Correlations/TARA/All")
+
+# Loop through each treatment in the correlation results list
+for (treatment in names(correlation_results)) {
+  # Access correlations for Specific Killing
+  correlations_SK <- correlation_results[[treatment]]$Specific_Killing
+  
+  # Plot and save for Specific Killing
+  plot_SK <- plot_significant_correlations(
+    correlations_SK, 
+    paste("Significant Correlations with Specific Killing -", treatment)
+  )
+  ggsave(
+    filename = paste0(treatment, "_Specific_Killing_Correlations.png"),
+    plot = plot_SK,
+    width = 10, 
+    height = 8, 
+    bg='white',
+    dpi = 300
+  )
+  
+  # Access correlations for Viral Load
+  correlations_VL <- correlation_results[[treatment]]$Viral_Load
+  
+  # Plot and save for Viral Load
+  plot_VL <- plot_significant_correlations(
+    correlations_VL, 
+    paste("Significant Correlations with Viral Load -", treatment)
+  )
+  ggsave(
+    filename = paste0(treatment, "_Viral_Load_Correlations.png"),
+    plot = plot_VL,
+    width = 10, 
+    height = 8, 
+    bg='white',
+    dpi = 300
+  )
+}
+
+
+########### Correalations Split by Timepoint ####################
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Correlations/TARA/By_Timepoint")
+
+# Loop through each treatment and timepoint in the data
+timepoints <- unique(tara_Freq_plot_filtered$Timepoint)
+
+correlation_results_by_timepoint <- list()
+
+# Loop 1: Create correlations list
+for (treatment in unique(tara_Freq_plot_filtered$Treatment)) {
+  for (timepoint in unique(tara_Freq_plot_filtered$Timepoint)) {
+    # Filter data for the current treatment and timepoint
+    treatment_timepoint_data <- tara_Freq_plot_filtered %>%
+      filter(Treatment == treatment, Timepoint == timepoint)
+    
+    # Calculate correlations for Specific Killing
+    correlations_SK <- calculate_correlations(treatment_timepoint_data, "Specific Killing", data_cols)
+    
+    # Calculate correlations for Viral Load
+    correlations_VL <- calculate_correlations(treatment_timepoint_data, "viral load", data_cols)
+    
+    # Store the results in a nested list
+    correlation_results_by_timepoint[[paste(treatment, timepoint, sep = "_")]] <- list(
+      Specific_Killing = correlations_SK,
+      Viral_Load = correlations_VL
+    )
+  }
+}
+
+for (key in names(correlation_results_by_timepoint)) {
+  # Extract treatment and timepoint from the key
+  split_key <- strsplit(key, "_")[[1]]
+  treatment <- split_key[1]
+  timepoint <- split_key[2]
+  
+  # Access correlations for Specific Killing
+  correlations_SK <- correlation_results_by_timepoint[[key]]$Specific_Killing
+  
+  # Plot and save for Specific Killing
+  if (nrow(correlations_SK) > 0) {  # Ensure there is data to plot
+    plot_SK <- plot_significant_correlations(
+      correlations_SK,
+      paste("Significant Correlations with Specific Killing -", treatment, "Timepoint", timepoint)
+    )
+    ggsave(
+      filename = paste0(treatment, "_Timepoint_", timepoint, "_Specific_Killing_Correlations.png"),
+      plot = plot_SK,
+      width = 10,
+      height = 8,
+      bg='white',
+      dpi = 300
+    )
+  }
+  
+  # Access correlations for Viral Load
+  correlations_VL <- correlation_results_by_timepoint[[key]]$Viral_Load
+  
+  # Plot and save for Viral Load
+  if (nrow(correlations_VL) > 0) {  # Ensure there is data to plot
+    plot_VL <- plot_significant_correlations(
+      correlations_VL,
+      paste("Significant Correlations with Viral Load -", treatment, "Timepoint", timepoint)
+    )
+    ggsave(
+      filename = paste0(treatment, "_Timepoint_", timepoint, "_Viral_Load_Correlations.png"),
+      plot = plot_VL,
+      width = 10,
+      height = 8,
+      bg='white',
+      dpi = 300
+    )
+  }
+}
+
+
+
+
+
+
+
 
 
 plot_correlations(hut78_correlations, "Correlation of Variables with Specific Killing (HUT78)")
@@ -318,26 +449,6 @@ ggsave("TARA_K562_Corr_barplot_vs_Specific_Killing.png", width = 10, height = 15
 hut78_correlations_with_viral_load <- calculate_correlations_with_viral_load(hut78_data_TARA)
 k562_correlations_with_viral_load <- calculate_correlations_with_viral_load(k562_data_TARA)
 
-# Define the plotting function for viral load correlations
-plot_correlations <- function(correlations, title) {
-  ggplot(correlations, aes(x = reorder(Variable, Correlation), y = Correlation, fill = P_value < 0.05)) +
-    geom_bar(stat = "identity", width = 0.7) +
-    coord_flip() +  # Flip coordinates for better readability
-    labs(
-      title = title,
-      x = "Variable",
-      y = "Spearman Correlation with Viral Load"
-    ) +
-    scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "lightgrey"), name = "Significance", labels = c("p < 0.05", "p >= 0.05")) +
-    theme_minimal(base_size = 15) +
-    theme(
-      plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
-      axis.title.x = element_text(size = 14),
-      axis.title.y = element_text(size = 14),
-      axis.text.x = element_text(size = 12),
-      axis.text.y = element_text(size = 12)
-    )
-}
 
 # Example usage for HUT78 and K562 data with viral load
 plot_correlations(hut78_correlations_with_viral_load, "Correlation of Variables with Viral Load (HUT78)")
@@ -348,13 +459,10 @@ ggsave("TARA_K562_Corr_barplot_vs_VL.png", width = 10, height = 15, dpi = 300,bg
 
 ### FLORAH
 
-setwd("C:/Users/axi313/Documents/NK_Manuscript/Correlations/FLORAH")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Correlations/FLORAH")
 
 ####### Paired Correlation for Specific Killing
-hut78_data_f <- florah_Freq_plot_filtered %>%
-  filter(Treatment == "HUT78")
-k562_data_f <- florah_Freq_plot_filtered %>%
-  filter(Treatment == "K562")
+
 
 # Function to calculate correlations with Specific Killing
 calculate_correlations_with_specific_killing <- function(data, target_var = "Specific Killing") {
@@ -378,6 +486,12 @@ calculate_correlations_with_specific_killing <- function(data, target_var = "Spe
   
   return(results)
 }
+
+
+hut78_data_f <- florah_Freq_plot_filtered %>%
+  filter(Treatment == "HUT78")
+k562_data_f <- florah_Freq_plot_filtered %>%
+  filter(Treatment == "K562")
 
 # Run the correlation function on HUT78 and K562 datasets in florah
 hut78_correlations_with_specific_killing <- calculate_correlations_with_specific_killing(hut78_data_f)
