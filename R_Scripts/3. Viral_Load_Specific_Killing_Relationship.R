@@ -288,6 +288,7 @@ plot_significant_correlations <- function(correlations, title) {
 }
 
 ####### Paired Correlation for Specific Killing
+
 tara_Freq_plot_filtered$Treatment <- droplevels(tara_Freq_plot_filtered$Treatment)
 tara_Freq_plot_filtered$Treatment
 
@@ -306,18 +307,14 @@ for (treatment in treatments) {
   # Calculate correlations for Specific Killing
   correlations_SK <- calculate_correlations(treatment_data, "Specific Killing", data_cols)
   
-  # Calculate correlations for Viral Load
-  correlations_VL <- calculate_correlations(treatment_data, "viral load", data_cols)
-  
   # Save the results in the list
   correlation_results[[treatment]] <- list(
-    Specific_Killing = correlations_SK,
-    Viral_Load = correlations_VL
+    Specific_Killing = correlations_SK
   )
 }
 
 ### PLOT
-setwd("C:/Users/ammas/Documents/NK_Manuscript/Correlations/TARA/All")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Correlations/TARA/Specific_Killing/All")
 
 # Loop through each treatment in the correlation results list
 for (treatment in names(correlation_results)) {
@@ -337,28 +334,11 @@ for (treatment in names(correlation_results)) {
     bg='white',
     dpi = 300
   )
-  
-  # Access correlations for Viral Load
-  correlations_VL <- correlation_results[[treatment]]$Viral_Load
-  
-  # Plot and save for Viral Load
-  plot_VL <- plot_significant_correlations(
-    correlations_VL, 
-    paste("Significant Correlations with Viral Load -", treatment)
-  )
-  ggsave(
-    filename = paste0(treatment, "_Viral_Load_Correlations.png"),
-    plot = plot_VL,
-    width = 10, 
-    height = 8, 
-    bg='white',
-    dpi = 300
-  )
 }
 
 
 ########### Correalations Split by Timepoint ####################
-setwd("C:/Users/ammas/Documents/NK_Manuscript/Correlations/TARA/By_Timepoint")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Correlations/TARA/Specific_Killing/By_Timepoint")
 
 # Loop through each treatment and timepoint in the data
 timepoints <- unique(tara_Freq_plot_filtered$Timepoint)
@@ -375,13 +355,9 @@ for (treatment in unique(tara_Freq_plot_filtered$Treatment)) {
     # Calculate correlations for Specific Killing
     correlations_SK <- calculate_correlations(treatment_timepoint_data, "Specific Killing", data_cols)
     
-    # Calculate correlations for Viral Load
-    correlations_VL <- calculate_correlations(treatment_timepoint_data, "viral load", data_cols)
-    
     # Store the results in a nested list
     correlation_results_by_timepoint[[paste(treatment, timepoint, sep = "_")]] <- list(
-      Specific_Killing = correlations_SK,
-      Viral_Load = correlations_VL
+      Specific_Killing = correlations_SK
     )
   }
 }
@@ -410,34 +386,63 @@ for (key in names(correlation_results_by_timepoint)) {
       dpi = 300
     )
   }
-  
-  # Access correlations for Viral Load
-  correlations_VL <- correlation_results_by_timepoint[[key]]$Viral_Load
-  
-  # Plot and save for Viral Load
-  if (nrow(correlations_VL) > 0) {  # Ensure there is data to plot
-    plot_VL <- plot_significant_correlations(
-      correlations_VL,
-      paste("Significant Correlations with Viral Load -", treatment, "Timepoint", timepoint)
-    )
-    ggsave(
-      filename = paste0(treatment, "_Timepoint_", timepoint, "_Viral_Load_Correlations.png"),
-      plot = plot_VL,
-      width = 10,
-      height = 8,
-      bg='white',
-      dpi = 300
-    )
-  }
 }
 
+########### Untreated vs Viral Load #############
+
+tara_Freq_Untreated <- tara_Freq %>%
+  filter(Treatment %in% "untreated", HIV == "HEI")
+# Ensure Timepoint is a factor and reorder it so "Entry" comes before "12"
+tara_Freq_Untreated <- tara_Freq_Untreated %>%
+  mutate(Timepoint = factor(Timepoint, levels = c("Entry", "12")))
+
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Correlations/TARA/Viral_Load_HEI_Only")
 
 
+correlations_VL_Untreated <- calculate_correlations(tara_Freq_Untreated, "viral load", data_cols)
 
+# Step 2: Plot the significant correlations
+plot_VL_Untreated <- plot_significant_correlations(
+  correlations_VL_Untreated,
+  "Significant Correlations with Viral Load - Untreated"
+)
 
+# Step 3: Save the plot
+ggsave(
+  filename = "HEI_Untreated_Viral_Load_Correlations_Combined_Timepoints.png",
+  plot = plot_VL_Untreated,
+  width = 10,
+  height = 8,
+  bg='white',
+  dpi = 300
+)
 
+for (timepoint in unique(tara_Freq_Untreated$Timepoint)) {
+  # Filter data for the current timepoint
+  timepoint_data <- tara_Freq_Untreated %>%
+    filter(Timepoint == timepoint)
+  
+  # Step 2: Calculate correlations for Viral Load
+  correlations_VL_timepoint <- calculate_correlations(timepoint_data, "viral load", data_cols)
+  
+  # Step 3: Plot the significant correlations
+  plot_VL_timepoint <- plot_significant_correlations(
+    correlations_VL_timepoint,
+    paste("Significant Correlations with Viral Load - Untreated - Timepoint", timepoint)
+  )
+  
+  # Step 4: Save the plot
+  ggsave(
+    filename = paste0("HEI_Untreated_Viral_Load_Correlations_Timepoint_", timepoint, ".png"),
+    plot = plot_VL_timepoint,
+    width = 10,
+    height = 8,
+    bg = 'white',
+    dpi = 300
+  )
+}
 
-
+########################
 
 plot_correlations(hut78_correlations, "Correlation of Variables with Specific Killing (HUT78)")
 ggsave("TARA_HUT78_Corr_barplot_vs_Specific_Killing.png", width = 10, height = 15, dpi = 300,bg='white')
