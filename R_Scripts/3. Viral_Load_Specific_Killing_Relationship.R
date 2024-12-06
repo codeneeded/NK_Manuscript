@@ -32,7 +32,7 @@ load(paste0(in.path,"florah_freq_clean.RDS"))
 ######## Paired Plots #####
 # Plot the updated data
 
-setwd("C:/Users/ammas/Documents/NK_Killing_Differential_Abundance_Analysis_HIV/Paired_Plots")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Paired_Plots")
 
 ### Cleaning 
 
@@ -137,6 +137,11 @@ ggsave("MIP-1B_Paired_Plot.png", width = 10, height = 8, dpi = 300,bg='white')
 plot_with_p_values(tara_Freq_plot_filtered_2, "CD107a")
 ggsave("CD107a_Paired_Plot.png", width = 10, height = 8, dpi = 300,bg='white')
 
+plot_with_p_values(tara_Freq_plot_filtered_2, "CD56dimCD16+/IFNy")
+ggsave("CD56dimCD16+_IFNy_Paired_Plot.png", width = 10, height = 8, dpi = 300,bg='white')
+
+plot_with_p_values(tara_Freq_plot_filtered_2, "CD56dimCD16+/TNFa")
+ggsave("CD56dimCD16+_TNFa_Paired_Plot.png", width = 10, height = 8, dpi = 300,bg='white')
 ######################## Specific Killing Split by HIV Status ########################
 
 ### TARA
