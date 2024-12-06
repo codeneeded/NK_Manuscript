@@ -203,8 +203,7 @@ setwd("C:/Users/ammas/Documents/NK_Manuscript/Correlations/TARA")
 
 # Scale viral load for the HEI subset
 data_HEI <- tara_Freq_plot_filtered_2 %>%
-  filter(HIV == "HEI") %>%
-  mutate(`viral load` = scale(`viral load`))  # Scale the viral load column
+  filter(HIV == "HEI" & Treatment != 'CEM')
 
 # Calculate p-values for each Treatment and Timepoint combination using Spearman correlation
 p_values <- data_HEI %>%
@@ -220,8 +219,8 @@ ggplot(data_HEI, aes(x = `viral load`, y = `Specific Killing`)) +
   facet_grid(Timepoint ~ Treatment, scales = "free_y") +  # Facet by Timepoint and Treatment
   theme_minimal(base_size = 15) +
   labs(
-    title = "Relationship between Scaled Viral Load and Specific Killing within HEI",
-    x = "Scaled Viral Load",
+    title = "Relationship between Viral Load and Specific Killing within HEI",
+    x = "Viral Load",
     y = "Specific Killing (%)"
   ) +
   theme(
@@ -236,7 +235,7 @@ ggplot(data_HEI, aes(x = `viral load`, y = `Specific Killing`)) +
     y = Inf,  # Position text at the top of each facet
     label = paste0("p = ", signif(p_value, 3))
   ), hjust = 0.5, vjust = 1.5, size = 4, color = "black")
-ggsave("TARA_Specific_Killing_vs_Viral_Load_Scatterplot_spearmens.png", width = 10, height = 8, dpi = 300,bg='white')
+ggsave("TARA_Specific_Killing_vs_Viral_Load_Scatterplot_spearmens.png", width = 14, height = 8, dpi = 300,bg='white')
 
 
 ######### Plot Specific Killing for each Group #############
