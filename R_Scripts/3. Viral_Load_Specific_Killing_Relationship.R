@@ -46,8 +46,13 @@ tara_Freq_plot_filtered <- tara_Freq_plot_filtered %>%
 # Ensure Timepoint is a factor and reorder it so "Entry" comes before "12"
 tara_Freq_plot_filtered <- tara_Freq_plot_filtered %>%
   mutate(Timepoint = factor(Timepoint, levels = c("Entry", "12")))
+tara_Freq_plot_filtered$Treatment <- droplevels(tara_Freq_plot_filtered$Treatment)
 tara_Freq_plot_filtered_2 <- tara_Freq_plot_filtered %>%
   filter(!Treatment %in% c("untreated","CEM+IL15", "HUT78+IL15", "K562+IL15"))
+tara_Freq_plot_filtered_3 <- tara_Freq_plot_filtered %>%
+  filter(!Treatment %in% c("CEM","CEM+IL15"))
+tara_Freq_plot_filtered_3$Treatment <- droplevels(tara_Freq_plot_filtered_3$Treatment)
+tara_Freq_plot_filtered_3$Treatment
 
 ### Florah
 florah_Freq$`Specific Killing` <- as.numeric(florah_Freq$`Specific Killing`)
@@ -142,6 +147,10 @@ ggsave("CD56dimCD16+_IFNy_Paired_Plot.png", width = 10, height = 8, dpi = 300,bg
 
 plot_with_p_values(tara_Freq_plot_filtered_2, "CD56dimCD16+/TNFa")
 ggsave("CD56dimCD16+_TNFa_Paired_Plot.png", width = 10, height = 8, dpi = 300,bg='white')
+
+plot_with_p_values(tara_Freq_plot_filtered, "CD107a")
+ggsave("CD107a_Paired_Plot_with_IL15.png", width = 15, height = 8, dpi = 300,bg='white')
+
 ######################## Specific Killing Split by HIV Status ########################
 
 ### TARA
