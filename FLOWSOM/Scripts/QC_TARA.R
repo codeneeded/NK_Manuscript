@@ -309,7 +309,7 @@ make.colour.plot(batch.sub, "UMAP_X", "UMAP_Y", "FlowSOM_metacluster", col.type 
 make.colour.plot(batch.sub, 'UMAP_X', 'UMAP_Y', 'Batch', 'factor', title = 'Post Batch effect Correction - By Batch'
                  ,dot.size=0.5,plot.width	=13)
 
-setwd("C:/Users/axi313/Documents/NK_Killing_Differential_Abundance_Analysis_HIV/FLOWSOM/TARA/Results/QC")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/FLOWSOM/TARA/Results/QC")
 dir.create("Output 3 - Annotation")
 setwd("Output 3 - Annotation")
 make.multi.plot(batch.sub, 'UMAP_X', 'UMAP_Y', cluster.cols)
@@ -323,3 +323,22 @@ make.pheatmap(exp, "Ordered_Clusters", cluster.cols,transpose=TRUE)
 setwd("C:/Users/axi313/Documents/NK_Killing_Differential_Abundance_Analysis_HIV/FLOWSOM")
 saveRDS(batch.corrected_filtered, file = "batch_corrected_filtered_FlowSOM.rds")
 saveRDS(batch.corrected, file = "batch_corrected_data.rds")
+
+
+########## Corrected Heatmaps For manuscript (Font Edits)
+all.flow <- readRDS(paste0(in.path,"batch_corrected_filtered_FlowSOM.rds"))
+sub.targets <- c(5000,5000,5000,5000,5000,5000,5000)
+batch.col <- "Batch"
+cluster.cols <- names(all.flow)[c(44:50,52:61,63,65:69)]
+batch.sub <- do.subsample(all.flow, sub.targets, batch.col)
+batch.sub <- run.umap(batch.sub, cluster.cols)
+
+setwd("C:/Users/ammas/Documents/NK_Manuscript/FLOWSOM/TARA/Results/QC")
+setwd("Output 3 - Annotation")
+make.multi.plot(batch.sub, 'UMAP_X', 'UMAP_Y', cluster.cols,plot.width = 8,plot.height = 6, figure.title="Flow.Multiplot.1")
+
+## Make heatmap
+### Expression heatmap
+
+exp <- do.aggregate(all.flow, cluster.cols, by = "Ordered_Clusters")
+make.pheatmap(exp, "Ordered_Clusters", cluster.cols, cell.size = 25)
