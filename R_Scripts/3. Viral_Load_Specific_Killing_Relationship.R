@@ -237,7 +237,46 @@ ggplot(data_HEI, aes(x = `viral load`, y = `Specific Killing`)) +
   ), hjust = 0.5, vjust = 1.5, size = 4, color = "black")
 ggsave("TARA_Specific_Killing_vs_Viral_Load_Scatterplot_spearmens.png", width = 14, height = 8, dpi = 300,bg='white')
 
+### COrrelation of IL-15 with viral load ######
 
+# Filter for HEI subset and only the three IL-15 treatments
+data_HEI_IL15 <- tara_Freq_plot_filtered %>%
+  filter(HIV == "HEI" & Treatment %in% c("CEM+IL-15", "K562+IL15", "HUT78+IL15"))
+
+# Calculate p-values for each Treatment and Timepoint combination using Spearman correlation
+p_values_IL15 <- data_HEI_IL15 %>%
+  group_by(Treatment, Timepoint) %>%
+  summarise(
+    p_value = cor.test(`viral load`, `Specific Killing`, method = "spearman")$p.value,
+    .groups = "drop"
+  )
+# Create the scatter plot with faceting and p-values
+ggplot(data_HEI_IL15, aes(x = `viral load`, y = `Specific Killing`)) +
+  geom_point(color = "#D55E00", size = 3, alpha = 0.6) +  # Points for each observation
+  geom_smooth(method = "lm", color = "black", se = TRUE) +  # Linear trend line with confidence interval
+  facet_grid(Timepoint ~ Treatment, scales = "free_y") +  # Facet by Timepoint and Treatment
+  theme_minimal(base_size = 15) +
+  labs(
+    title = "Relationship between Viral Load and Specific Killing within HEI (IL-15 Treatments)",
+    x = "Viral Load",
+    y = "Specific Killing (%)"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    strip.text = element_text(size = 12)  # Adjust facet label size
+  ) +
+  # Add p-values as text annotations
+  geom_text(data = p_values_IL15, inherit.aes = FALSE, aes(
+    x = mean(range(data_HEI_IL15$`viral load`, na.rm = TRUE)),  # Center p-value above the graph
+    y = Inf,  # Position text at the top of each facet
+    label = paste0("p = ", signif(p_value, 3))
+  ), hjust = 0.5, vjust = 1.5, size = 4, color = "black")
+
+# Save the plot
+ggsave("TARA_Specific_Killing_vs_Viral_Load_Scatterplot_IL15_spearmens.png", 
+       width = 14, height = 8, dpi = 300, bg = 'white')
 ######### Plot Specific Killing for each Group #############
 
 ### TARA
@@ -348,6 +387,7 @@ for (treatment in names(correlation_results)) {
     dpi = 300
   )
 }
+
 
 
 ########### Correalations Split by Timepoint ####################
