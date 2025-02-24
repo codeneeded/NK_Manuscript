@@ -335,6 +335,41 @@ ggplot(nkiller_plot, aes(x = Group, y = `Total_NK/NKG2A+`, fill = Group)) +
 
 ggsave(paste0(out.path.2,"HEIvsHEU_NKG2A+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
 
+### NKG2A for each subset
+
+ggplot(nkiller_plot, aes(x = Group, y = `Total_NK/NKG2A+`, fill = Group)) +
+  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
+  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
+  labs(title = expression("NKG2A"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
+       x = "HIV Status",
+       y = expression("NKG2A"^"+"~"(%)")) +  # Y-axis label with superscripts
+  theme_minimal() +
+  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
+  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
+  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
+                     method = "wilcox.test", 
+                     label = 'p.format') +  # Adjust y position for significance stars
+  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
+    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
+    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
+    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
+    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
+    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
+    strip.placement = "outside",  # Moves facet label outside
+    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
+    legend.position = "none"  # Remove legend if not needed
+  )
+
+ggsave(paste0(out.path.2,"HEIvsHEU_NKG2A+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
+
+
+
+
+
+
+
 ### CD38 ###
 # Create the plot with all facets in one row and custom order
 ggplot(nkiller_plot, aes(x = Group, y = `Total_NK/CD38+`, fill = Group)) +
@@ -882,6 +917,60 @@ ggplot(nkiller_plot.2, aes(x = Group, y = `NKbright/CD38+`, fill = Group)) +
   )
 
 ggsave(paste0(out.path.2,"HEIvsHEU_CD38+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
+
+
+
+
+
+
+################ NKG2A and CD38 for each subset #####################
+out.path.3 <- "C:/Users/ammas/Documents/NK_Manuscript/Boxplots/NKG2A_CD38/"
+
+# List of the subsets and corresponding NKG2A and CD38 columns
+subsets <- c("NKdim_CD16+", "NK_CD56-CD16+", "NKbright")
+markers <- c("NKG2A", "CD38")
+
+# Loop over each subset and create plots for both NKG2A and CD38
+for(subset in subsets) {
+  for(marker in markers) {
+    # Construct column names for the percentage of NKG2A+ or CD38+ within the subset
+    subset_col <- paste0(subset)
+    marker_col <- paste0(subset, "/", marker, "+")
+    
+    # Calculate the percentage (column for NKG2A+ or CD38+ relative to subset)
+    nkiller_plot[[paste0(subset, "_", marker, "_percent")]] <- (nkiller_plot[[marker_col]] / nkiller_plot[[subset_col]]) * 100
+    
+    # Generate the plot with dynamic title
+    p <- ggplot(nkiller_plot, aes(x = Group, y = get(paste0(subset, "_", marker, "_percent")), fill = Group)) +
+      geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +
+      geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +
+      labs(title = paste(marker, "+ in", subset),  # Dynamic title using paste
+           x = "HIV Status",
+           y = paste(marker, "+ (%)")) +  # Dynamic y-axis label
+      theme_minimal() +
+      scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +
+      scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +
+      stat_compare_means(comparisons = list(c("HEI", "HEU")), method = "wilcox.test", label = 'p.format') +
+      facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +
+      theme(
+        plot.title = element_text(hjust = 0.5, size = 18, face = "bold", colour = 'black'),
+        axis.title.x = element_text(size = 18, margin = margin(t = 15), colour = 'black'),
+        axis.title.y = element_text(size = 18, colour = 'black'),
+        axis.text.x = element_text(size = 18, colour = 'black'),
+        axis.text.y = element_text(size = 16, colour = 'black'),
+        strip.text = element_text(size = 17, colour = 'black'),
+        strip.placement = "outside",
+        panel.spacing = unit(1, "lines"),
+        legend.position = "none"
+      )
+    
+    # Save the plot
+    ggsave(paste0(out.path.3, "HEIvsHEU_", subset, "_", marker, "_percent.png"), plot = p, bg='white', height = 5, width = 8.5)
+  }
+}
+
+
+
 
 ################################ Correlate Viral Load with Variables ##########
 
