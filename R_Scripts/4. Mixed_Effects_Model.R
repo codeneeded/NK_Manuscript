@@ -15,11 +15,13 @@ library(ggrepel)
 library(plotly)
 library(broom.mixed)
 library(extrafont)
+library(ggpubr)
+library(grid)
 loadfonts(device = "win")
 
 ############################################ Global Variables #######################################################
-setwd("C:/Users/axi313/Documents/NK_Manuscript")
-in.path <-"C:/Users/axi313/Documents/NK_Manuscript/Saved_R_Data/"
+setwd("C:/Users/ammas/Documents/NK_Manuscript")
+in.path <-"C:/Users/ammas/Documents/NK_Manuscript/Saved_R_Data/"
 
 load(paste0(in.path,"tara_freq_clean.RDS"))
 load(paste0(in.path,"florah_freq_clean.RDS"))
@@ -283,42 +285,7 @@ get_all_model_summaries <- function(models_list) {
   
   return(all_summaries)
 }
-
-# Function to plot significant effects
-plot_significant_effects <- function(significant_effects_table, title = "Significant Effects Across Models") {
-  
-  # Check if there are any significant effects to plot
-  if (nrow(significant_effects_table) == 0) {
-    cat("No significant effects to plot.")
-    return(NULL)
-  }
-  
-  # Plot significant effects
-  ggplot(significant_effects_table, aes(x = reorder(Effect, Estimate), y = Estimate, fill = Estimate > 0)) +
-    geom_bar(stat = "identity", width = 0.7) +
-    facet_wrap(~ Subset, scales = "free_y") +  # Separate facets for each model subset
-    coord_flip() +  # Flip coordinates for better readability
-    labs(
-      title = title,
-      x = "Effect",
-      y = "Estimate"
-    ) +
-    scale_fill_manual(values = c("TRUE" = "lightblue", "FALSE" = "lightcoral"), name = "Direction", 
-                      labels = c("Negative","Positive")) +
-    theme_minimal(base_size = 15) +
-    theme(
-      plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
-      axis.title.x = element_text(size = 14),
-      axis.title.y = element_text(size = 14),
-      axis.text.x = element_text(size = 12),
-      axis.text.y = element_text(size = 12),
-      legend.position = "top"
-    )
-}
-
-
-# Define the function
-  
+##########
 plot_significant_relationship <- function(data, x_var, y_var = "Specific Killing", facet_var = "Timepoint") {
   
   # Check if facet_var exists in the data; if not, stop with an error message
@@ -326,33 +293,38 @@ plot_significant_relationship <- function(data, x_var, y_var = "Specific Killing
     stop(paste("Column", facet_var, "is not found in the dataset. Please check your input."))
   }
   
-  # Calculate a common y_max for all facets based on the highest value across all facets
-  common_y_max <- max(data[[y_var]], na.rm = TRUE) * 1.2  # 20% above the maximum y-value for more space
+  # Calculate the global Pearson correlation for the entire dataset before faceting
+  pearson_correlation <- cor(data[[x_var]], data[[y_var]], method = "pearson")
+  pearson_p_value <- cor.test(data[[x_var]], data[[y_var]], method = "pearson")$p.value
   
-  # Calculate both Pearson and Spearman correlations for each level of facet_var
+  # Create a common label for the global Pearson correlation
+  global_correlation_label <- paste0(
+    "Global Pearson r = ", round(pearson_correlation, 2), ", p = ", signif(pearson_p_value, 3)
+  )
+  
+  # Calculate individual Pearson correlation for each facet (timepoint)
   correlation_results <- data %>%
-    group_by(.data[[facet_var]]) %>%
+    group_by_at(facet_var) %>%
     summarize(
-      pearson_correlation = cor(data[[x_var]], data[[y_var]], method = "pearson"),
-      pearson_p_value = cor.test(data[[x_var]], data[[y_var]], method = "pearson")$p.value,
-      spearman_correlation = cor(data[[x_var]], data[[y_var]], method = "spearman"),
-      spearman_p_value = cor.test(data[[x_var]], data[[y_var]], method = "spearman")$p.value
+      pearson_correlation = cor(.data[[x_var]], .data[[y_var]], method = "pearson"),
+      pearson_p_value = cor.test(.data[[x_var]], .data[[y_var]], method = "pearson")$p.value
     ) %>%
     mutate(
       label = paste0(
-        "Pearson r = ", round(pearson_correlation, 2), ", p = ", signif(pearson_p_value, 3),
-        "\nSpearman rho = ", round(spearman_correlation, 2), ", p = ", signif(spearman_p_value, 3)
-      ),
-      y_max = common_y_max  # Use the common y_max for all facets
+        "Pearson r = ", round(pearson_correlation, 2), ", p = ", signif(pearson_p_value, 3)
+      )
     )
   
-  # Create the plot
-  p <- ggplot(data, aes_string(x = paste0("`",x_var,"`"), y = paste0("`",y_var,"`"), group = facet_var)) +
+  # Calculate a common y_max for all facets based on the highest value across all facets
+  common_y_max <- max(data[[y_var]], na.rm = TRUE) * 1.2  # 20% above the maximum y-value for more space
+  
+  # Create the plot with the global correlation in the subtitle
+  p <- ggplot(data, aes_string(x = paste0("`", x_var, "`"), y = paste0("`", y_var, "`"), group = facet_var)) +
     geom_point(aes(color = HIV), size = 4, alpha = 0.8) +  # Color points by HIV status
     geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "solid", size = 1.2) +  # Regression line
     labs(
-      title = paste( y_var, "Vs", x_var),
-      subtitle = paste("Faceted by", facet_var),
+      title = paste(y_var, "Vs", x_var),
+      subtitle = paste("Faceted by", facet_var, "\n", global_correlation_label),  # Add global correlation to subtitle
       x = x_var,
       y = y_var
     ) +
@@ -367,37 +339,30 @@ plot_significant_relationship <- function(data, x_var, y_var = "Specific Killing
       panel.grid.minor = element_blank(),
       panel.background = element_rect(fill = "#f7f7f7", color = NA),
       plot.title = element_text(face = "bold", hjust = 0.5),
-      plot.subtitle = element_text(hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5),  # Ensure the subtitle is centered
       axis.title = element_text(face = "bold"),
       strip.background = element_rect(fill = "#e0e0e0", color = NA),
       strip.text = element_text(face = "bold")
     ) +
-    # Add Pearson and Spearman correlation annotations using geom_text, with y_max for each facet
+    # Add individual Pearson correlation annotations for each facet (inside facet)
     geom_text(
       data = correlation_results,
       aes(
-        x = Inf, y = y_max, 
-        label = paste0("Pearson r = ", round(pearson_correlation, 2), ", p = ", signif(pearson_p_value, 3))
+        x = Inf, y = common_y_max, 
+        label = label
       ),
-      hjust = 1.3, color = "black", size = 4.5, fontface = "bold",
+      hjust = 1.3, color = "black", size = 6, fontface = "bold",  # Increased font size
       inherit.aes = FALSE
-    ) 
-    
-    # Add Spearman correlation annotation slightly below Pearson's
-#    geom_text(
-#      data = correlation_results,
-#      aes(
-#        x = Inf, y = y_max - 0.05 * y_max,  # Offset by 5% of y_max
-#       label = paste0("Spearman rho = ", round(spearman_correlation, 2), ", p = ", signif(spearman_p_value, 3))
-#      ),
-#      hjust = 1.35, color = "black", size = 4, fontface = "bold",
-#      inherit.aes = FALSE
-#    )
+    )
   
   return(p)
-}
-#plot_significant_relationship(data = TARA_HUT78_Freq, x_var = 'CD25')
   
+  
+}
+
+# Display the correlation results per timepoint
+print(correlation_results)
+
 sig_relationships_florah <- function(data, x_var, y_var = "Specific Killing") {
   
   # Calculate a common y_max for all data based on the highest value across all facets
