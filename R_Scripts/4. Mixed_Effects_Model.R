@@ -351,12 +351,11 @@ plot_significant_relationship <- function(data, x_var, y_var = "Specific Killing
         x = Inf, y = common_y_max, 
         label = label
       ),
-      hjust = 1.3, color = "black", size = 6, fontface = "bold",  # Increased font size
+      hjust = 1.5, color = "black", size = 3.5, fontface = "bold",  # Center aligned with hjust = 0.5
       inherit.aes = FALSE
     )
   
   return(p)
-  
   
 }
 
@@ -429,26 +428,60 @@ sig_relationships_florah <- function(data, x_var, y_var = "Specific Killing") {
   return(p)
 }
 
+plot_effect_estimates <- function(results) {
+  # Remove backticks from the Effect column for comparison
+  results$Effect_no_backticks <- gsub("`", "", results$Effect)
+  
+  # Replace 'Timepoint12' with just 'Timepoint' for easier interpretation
+  results$Effect_no_backticks <- gsub("Timepoint12", "Timepoint", results$Effect_no_backticks)
+  
+  # Combine Subset and Effect into a single column, but only display the effect once if it's the same as the subset
+  results$EffectLabel <- ifelse(results$Effect_no_backticks == results$Subset, 
+                                results$Subset, 
+                                paste(results$Subset, results$Effect_no_backticks, sep = " - "))
+  
+  # Order results by the absolute value of Estimate (effect size)
+  results <- results[order(abs(results$Estimate), decreasing = TRUE),]
+  results$EffectLabel <- factor(results$EffectLabel, levels = results$EffectLabel[order(abs(results$Estimate), decreasing = FALSE)])
+  
+  # Create the plot
+  ggplot(results, aes(x = Estimate, y = EffectLabel)) +
+    geom_point(size = 6, color = "#0073C2FF") +  # Increased dot size and kept the solid blue color
+    geom_errorbarh(aes(xmin = Estimate - Std.Error, xmax = Estimate + Std.Error), height = 0.3, color = "#D55E00") +  # Darker and more saturated error bar color (burnt orange)
+    labs(x = "Effect Estimate", y = "Effect by Subset") +
+    theme_minimal(base_size = 14) +  # Larger base font size for better readability
+    theme(axis.text.y = element_text(size = 14, color = "darkblue"),  # Darken y-axis labels and increase size
+          axis.text.x = element_text(size = 14, color = "darkblue"),  # Increase and darken x-axis labels for effect size
+          axis.title = element_text(size = 14, face = "bold", color = "darkred"),
+          panel.grid.major.y = element_line(color = "lightgray", linetype = "dashed"),  # Light grid lines for clarity
+          panel.grid.major.x = element_line(color = "lightgray", linetype = "dashed")) +
+    theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),  # Centered title
+          plot.margin = margin(1, 1, 1, 1, "cm"))
+}
 
 ######### HUT 78 - TARA ##########
 
-setwd("C:/Users/axi313/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/HUT78")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/HUT78")
 
 ### Specific Killing
 fixed_part_of_formula <- "`Specific Killing` ~ `viral load` + Timepoint  + gender + HIV + (1 | PID)"
 HUT78_SK_ml <- fit_models_list(TARA_HUT78_Freq, fixed_part_of_formula, flow_population_columns) 
 HUT78_SK_sm <- summarize_models(HUT78_SK_ml)
+plot_effect_estimates(HUT78_SK_sm)
+ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_significant.png", width = 14, height = 6, dpi = 300,bg='white')
+
 HUT78_SK_plot <- plot_significant_effects (HUT78_SK_sm)
 ggsave("Flow_Effects_on_Specific_Killing_HUT78_TARA_Freq_significant_only.png", width = 14, height = 6, dpi = 300,bg='white',HUT78_SK_plot)
-getwd()
 
+
+###########
 # Initialize an empty list to store plots
 plot_list <- list()
-
+HUT78_SK_sm
 # Loop through each significant effect and save the plot to the list
 for (i in 1:nrow(HUT78_SK_sm)) {
   significant_var <- gsub("`", "", HUT78_SK_sm$Effect[i])
-  if (significant_var == "TimepointEntry") {
+  if (significant_var == "Timepoint12") {
     next  # Skip to the next iteration if "TimepointEntry"
   } 
   # Ensure the variable name is properly escaped by wrapping it in backticks
@@ -469,12 +502,16 @@ for (name in names(plot_list)) {
 ######### K562 - TARA ##########
 
 
-setwd("C:/Users/axi313/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/K562/Specific_Killing")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/K562/Specific_Killing")
 
 ### Specific Killing
 fixed_part_of_formula <- "`Specific Killing` ~ `viral load` + Timepoint  + gender + HIV + (1 | PID)"
 K562_SK_ml <- fit_models_list(TARA_K562_Freq, fixed_part_of_formula, flow_population_columns) 
 K562_SK_sm <- summarize_models(K562_SK_ml)
+plot_effect_estimates(K562_SK_sm)
+ggsave("Mixed_Effects_Models_Forrest_Plot_K562_significant.png", width = 14, height = 6, dpi = 300,bg='white')
+
+
 K562_SK_plot <- plot_significant_effects (K562_SK_sm)
 ggsave("Flow_Effects_on_Specific_Killing_K562_TARA_Freq_significant_only.png", width = 35, height = 8, dpi = 300,bg='white',K562_SK_plot)
 
@@ -508,12 +545,16 @@ for (name in names(plot_list)) {
 
 ### K562 
 
-setwd("C:/Users/axi313/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/Untreated/K562_Specific_Killing")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/Untreated/K562_Specific_Killing")
 
 ### Specific Killing
 fixed_part_of_formula <- "`Specific Killing` ~ `viral load` + Timepoint  + gender + HIV + (1 | PID)"
 K562_U_SK_ml <- fit_models_list(TARA_Untreated_Freq_K562, fixed_part_of_formula, flow_population_columns) 
 K562_U_SK_sm <- summarize_models(K562_U_SK_ml)
+plot_effect_estimates(K562_U_SK_sm)
+ggsave("Mixed_Effects_Models_Forrest_Plot_K562_Untreated__significant.png", width = 14, height = 6, dpi = 300,bg='white')
+
+
 K562_U_SK_plot <- plot_significant_effects (K562_U_SK_sm)
 ggsave("Flow_Effects_on_Specific_Killing_K562_Untreated_TARA_Freq_significant_only.png", width = 35, height = 8, dpi = 300,bg='white',K562_U_SK_plot)
 
@@ -548,12 +589,20 @@ for (name in names(plot_list)) {
 
 ### HUT78 
 
-setwd("C:/Users/axi313/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/Untreated/HUT78_Specific_Killing")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/Untreated/HUT78_Specific_Killing")
 
 ### Specific Killing
 fixed_part_of_formula <- "`Specific Killing` ~ `viral load` + Timepoint  + gender + HIV + (1 | PID)"
 HUT78_U_SK_ml <- fit_models_list(TARA_Untreated_Freq_HUT78, fixed_part_of_formula, flow_population_columns) 
 HUT78_U_SK_sm <- summarize_models(HUT78_U_SK_ml)
+plot_effect_estimates(HUT78_U_SK_sm)
+ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_Untreated__significant.png", width = 14, height = 6, dpi = 300,bg='white')
+
+HUT78_U_SK_ml
+
+ggsave("Mixed_Effects_Models_Forrest_Plot_K562_Untreated__significant.png", width = 14, height = 6, dpi = 300,bg='white')
+
+
 HUT78_U_SK_plot <- plot_significant_effects (HUT78_U_SK_sm)
 ggsave("Flow_Effects_on_Specific_Killing_HUT78_Untreated_TARA_Freq_significant_only.png", width = 35, height = 8, dpi = 300,bg='white',HUT78_U_SK_plot)
 
@@ -590,7 +639,7 @@ for (name in names(plot_list)) {
 
 
 ######### HUT 78 - FLORAH ##########
-setwd("C:/Users/axi313/Documents/NK_Manuscript/Mixed_Effects_Model/FLORAH/HUT78/Specific_Killing")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/FLORAH/HUT78/Specific_Killing")
 # Loop through each significant effect and save the plot to the list
 plot_list <- list()
 
@@ -616,7 +665,7 @@ for (name in names(plot_list)) {
 
 
 ######### K562 - FLORAH ##########
-setwd("C:/Users/axi313/Documents/NK_Manuscript/Mixed_Effects_Model/FLORAH/K562/Specific_Killing")
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/FLORAH/K562/Specific_Killing")
 # Loop through each significant effect and save the plot to the list
 plot_list <- list()
 
