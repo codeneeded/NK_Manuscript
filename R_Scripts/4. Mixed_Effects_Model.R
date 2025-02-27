@@ -469,6 +469,7 @@ HUT78_SK_ml <- fit_models_list(TARA_HUT78_Freq, fixed_part_of_formula, flow_popu
 HUT78_SK_sm <- summarize_models(HUT78_SK_ml)
 plot_effect_estimates(HUT78_SK_sm)
 ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_significant.png", width = 14, height = 6, dpi = 300,bg='white')
+ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_significant_transparent_poster.png", width = 9, height = 6.6, dpi = 300,bg='transparent')
 
 HUT78_SK_plot <- plot_significant_effects (HUT78_SK_sm)
 ggsave("Flow_Effects_on_Specific_Killing_HUT78_TARA_Freq_significant_only.png", width = 14, height = 6, dpi = 300,bg='white',HUT78_SK_plot)
