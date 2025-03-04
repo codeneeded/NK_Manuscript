@@ -434,6 +434,8 @@ plot_effect_estimates <- function(results) {
   
   # Replace 'Timepoint12' with just 'Timepoint' for easier interpretation
   results$Effect_no_backticks <- gsub("Timepoint12", "Timepoint", results$Effect_no_backticks)
+  results$Effect_no_backticks <- gsub("gendermale", "Male", results$Effect_no_backticks)
+  results$Effect_no_backticks <- gsub("HIVHEI", "HEI", results$Effect_no_backticks)
   
   # Combine Subset and Effect into a single column, but only display the effect once if it's the same as the subset
   results$EffectLabel <- ifelse(results$Effect_no_backticks == results$Subset, 
@@ -468,7 +470,7 @@ fixed_part_of_formula <- "`Specific Killing` ~ `viral load` + Timepoint  + gende
 HUT78_SK_ml <- fit_models_list(TARA_HUT78_Freq, fixed_part_of_formula, flow_population_columns) 
 HUT78_SK_sm <- summarize_models(HUT78_SK_ml)
 plot_effect_estimates(HUT78_SK_sm)
-ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_significant.png", width = 14, height = 6, dpi = 300,bg='white')
+ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_significant.png", width = 9, height = 5, dpi = 300,bg='white')
 ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_significant_transparent_poster.png", width = 9, height = 6.6, dpi = 300,bg='transparent')
 
 HUT78_SK_plot <- plot_significant_effects (HUT78_SK_sm)
@@ -510,7 +512,7 @@ fixed_part_of_formula <- "`Specific Killing` ~ `viral load` + Timepoint  + gende
 K562_SK_ml <- fit_models_list(TARA_K562_Freq, fixed_part_of_formula, flow_population_columns) 
 K562_SK_sm <- summarize_models(K562_SK_ml)
 plot_effect_estimates(K562_SK_sm)
-ggsave("Mixed_Effects_Models_Forrest_Plot_K562_significant.png", width = 14, height = 6, dpi = 300,bg='white')
+ggsave("Mixed_Effects_Models_Forrest_Plot_K562_significant.png", width = 9, height = 6.6, dpi = 300,bg='white')
 
 
 K562_SK_plot <- plot_significant_effects (K562_SK_sm)
@@ -553,11 +555,11 @@ fixed_part_of_formula <- "`Specific Killing` ~ `viral load` + Timepoint  + gende
 K562_U_SK_ml <- fit_models_list(TARA_Untreated_Freq_K562, fixed_part_of_formula, flow_population_columns) 
 K562_U_SK_sm <- summarize_models(K562_U_SK_ml)
 plot_effect_estimates(K562_U_SK_sm)
-ggsave("Mixed_Effects_Models_Forrest_Plot_K562_Untreated__significant.png", width = 14, height = 6, dpi = 300,bg='white')
+ggsave("Mixed_Effects_Models_Forrest_Plot_K562_Untreated__significant.png", width = 9, height = 8, dpi = 300,bg='white')
 
 
 K562_U_SK_plot <- plot_significant_effects (K562_U_SK_sm)
-ggsave("Flow_Effects_on_Specific_Killing_K562_Untreated_TARA_Freq_significant_only.png", width = 35, height = 8, dpi = 300,bg='white',K562_U_SK_plot)
+ggsave("Flow_Effects_on_Specific_Killing_K562_Untreated_TARA_Freq_significant_only.png", width = 35, height = 7, dpi = 300,bg='white',K562_U_SK_plot)
 
 # Initialize an empty list to store plots
 plot_list <- list()
@@ -597,7 +599,7 @@ fixed_part_of_formula <- "`Specific Killing` ~ `viral load` + Timepoint  + gende
 HUT78_U_SK_ml <- fit_models_list(TARA_Untreated_Freq_HUT78, fixed_part_of_formula, flow_population_columns) 
 HUT78_U_SK_sm <- summarize_models(HUT78_U_SK_ml)
 plot_effect_estimates(HUT78_U_SK_sm)
-ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_Untreated__significant.png", width = 14, height = 6, dpi = 300,bg='white')
+ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_Untreated__significant.png", width = 9, height = 4, dpi = 300,bg='white')
 
 HUT78_U_SK_ml
 
