@@ -359,6 +359,8 @@ plot_significant_relationship <- function(data, x_var, y_var = "Specific Killing
   
 }
 
+plot_significant_relationship(data = TARA_Untreated_Freq_K562, x_var = 'KLRG1', facet_var = 'Timepoint')
+
 # Display the correlation results per timepoint
 print(correlation_results)
 
@@ -421,12 +423,13 @@ sig_relationships_florah <- function(data, x_var, y_var = "Specific Killing") {
         x = Inf, y = y_max - 0.05 * y_max,  # Offset by 5% of y_max
         label = paste0("Spearman rho = ", round(spearman_correlation, 2), ", p = ", signif(spearman_p_value, 3))
       ),
-      hjust = 1.35, color = "black", size = 4, fontface = "bold",
+      hjust = 1.3, color = "black", size = 3.5, fontface = "bold",
       inherit.aes = FALSE
     )
   
   return(p)
 }
+
 
 plot_effect_estimates <- function(results) {
   # Remove backticks from the Effect column for comparison
@@ -502,6 +505,7 @@ for (name in names(plot_list)) {
   ggsave(filename = file_name, plot = plot_list[[name]], width = 8, height = 6, dpi = 300, bg = 'white')
 }
 
+
 ######### K562 - TARA ##########
 
 
@@ -511,7 +515,18 @@ setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/K562/Spec
 fixed_part_of_formula <- "`Specific Killing` ~ `viral load` + Timepoint  + gender + HIV + (1 | PID)"
 K562_SK_ml <- fit_models_list(TARA_K562_Freq, fixed_part_of_formula, flow_population_columns) 
 K562_SK_sm <- summarize_models(K562_SK_ml)
-plot_effect_estimates(K562_SK_sm)
+
+
+# Remove rows where 'Subset' is exactly "NKG2A-" or "CD107A-"
+K562_SK_sm_filtered <- K562_SK_sm %>%
+  filter(!Subset %in% c("NKG2A-", "CD107A-"))
+
+K562_SK_sm_filtered
+
+
+
+
+plot_effect_estimates(K562_SK_sm_filtered)
 ggsave("Mixed_Effects_Models_Forrest_Plot_K562_significant.png", width = 9, height = 6.6, dpi = 300,bg='white')
 
 
@@ -554,7 +569,14 @@ setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/Untreated
 fixed_part_of_formula <- "`Specific Killing` ~ `viral load` + Timepoint  + gender + HIV + (1 | PID)"
 K562_U_SK_ml <- fit_models_list(TARA_Untreated_Freq_K562, fixed_part_of_formula, flow_population_columns) 
 K562_U_SK_sm <- summarize_models(K562_U_SK_ml)
-plot_effect_estimates(K562_U_SK_sm)
+
+# Remove only rows where 'Subset' ends with a negative sign (-)
+K562_U_SK_sm_filtered <- K562_U_SK_sm %>%
+  filter(!grepl("-$", Subset))
+         
+K562_U_SK_sm_filtered
+
+plot_effect_estimates(K562_U_SK_sm_filtered)
 ggsave("Mixed_Effects_Models_Forrest_Plot_K562_Untreated__significant.png", width = 9, height = 8, dpi = 300,bg='white')
 
 
@@ -589,6 +611,8 @@ for (name in names(plot_list)) {
   ggsave(filename = file_name, plot = plot_list[[name]], width = 9, height = 6, dpi = 300, bg = 'white')
 }
 
+plot_significant_relationship(data = TARA_Untreated_Freq_K562, x_var = 'KLRG1', facet_var = 'HIV')  + ggtitle("Specific Killing VS KLRG1 (K562 Before Co-culture)")
+ggsave("Flow_Effects_on_Specific_Killing_K562_Untreated_TARA_Freq_KLRG1_HIV.png", width = 9, height = 6, dpi = 300,bg='white')
 
 ### HUT78 
 
@@ -636,6 +660,36 @@ for (name in names(plot_list)) {
   # Save the plot using ggsave
   ggsave(filename = file_name, plot = plot_list[[name]], width = 9, height = 6, dpi = 300, bg = 'white')
 }
+
+plot_significant_relationship(data = TARA_Untreated_Freq_HUT78, x_var = 'KLRG1', facet_var = 'gender') + ggtitle("Specific Killing VS KLRG1 (HUT78 Before Co-culture)")
+ggsave("Flow_Effects_on_Specific_Killing_HUT78_Untreated_TARA_Freq_KLRG1_GENDER.png", width = 9, height = 6, dpi = 300,bg='white')
+
+###########
+library(patchwork)
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model")
+
+plot1 <- plot_effect_estimates(HUT78_U_SK_sm) + ggtitle("HUT78 Effects on Specific Killing (Before Co-culture)")
+plot2 <-  plot_effect_estimates(HUT78_SK_sm) +  ggtitle("HUT78 Effects on Specific Killing (After Co-culture)")
+plot3 <- plot_effect_estimates(K562_U_SK_sm_filtered) + ggtitle("K562 Effects on Specific Killing (Before Co-culture)")
+plot4 <- plot_effect_estimates(K562_SK_sm_filtered) + ggtitle("K562 Effects on Specific Killing (After Co-culture)")
+
+combined_plot <- (plot1 | plot2) / (plot3 | plot4)
+combined_plot
+
+ggsave("Mixed_Effects_Models_Forrest_Plot_ALL.png", width = 24, height = 17, dpi = 300,bg='white')
+
+plot5 <- plot_significant_relationship(data = TARA_HUT78_Freq, x_var = 'CD56dimCD16+/FasL')+ ggtitle("Specific Killing VS CD56dimCD16+/FasL (HUT78)")
+plot6 <- plot_significant_relationship(data = TARA_K562_Freq, x_var = 'CD56dimCD16+/FasL')+ ggtitle("Specific Killing VS CD56dimCD16+/FasL (K562)")
+combined_plot2 <- (plot5 | plot6)
+combined_plot2
+ggsave("FASL_plot_ALL.png", width = 22, height = 9, dpi = 300,bg='white')
+
+
+plot7 <- plot_significant_relationship(data = TARA_HUT78_Freq, x_var = 'CD107a+Granzyme B+Perforin+')+ ggtitle("Specific Killing VS CD107a+Granzyme B+Perforin+ (HUT78)")
+plot8 <- plot_significant_relationship(data = TARA_K562_Freq, x_var = 'CD107a+Granzyme B+Perforin+')+ ggtitle("Specific Killing VS CD107a+Granzyme B+Perforin+ (K562)")
+combined_plot3 <- (plot7 | plot8)
+combined_plot3
+ggsave("CD107a_plot_ALL.png", width = 22, height = 9, dpi = 300,bg='white')
 
 ################# FLORAH ###########
 
