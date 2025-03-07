@@ -320,7 +320,7 @@ plot_significant_relationship <- function(data, x_var, y_var = "Specific Killing
   
   # Create the plot with the global correlation in the subtitle
   p <- ggplot(data, aes_string(x = paste0("`", x_var, "`"), y = paste0("`", y_var, "`"), group = facet_var)) +
-    geom_point(aes(color = HIV), size = 4, alpha = 0.8) +  # Color points by HIV status
+    geom_point(aes(color = HIV), size = 4.5, alpha = 0.8) +  # Color points by HIV status
     geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "solid", size = 1.2) +  # Regression line
     labs(
       title = paste(y_var, "Vs", x_var),
@@ -330,11 +330,11 @@ plot_significant_relationship <- function(data, x_var, y_var = "Specific Killing
     ) +
     scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Custom colors for HIV status
     facet_wrap(as.formula(paste("~", facet_var))) +  # Facet by facet_var
-    theme_minimal(base_size = 16) +
+    theme_minimal(base_size = 19) +
     theme(
       legend.position = "top",
       legend.title = element_blank(),
-      legend.text = element_text(size = 14),  # Increase text size for HEI and HEU
+      legend.text = element_text(size = 16),  # Increase text size for HEI and HEU
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_rect(fill = "#f7f7f7", color = NA),
@@ -351,15 +351,15 @@ plot_significant_relationship <- function(data, x_var, y_var = "Specific Killing
         x = Inf, y = common_y_max, 
         label = label
       ),
-      hjust = 1.5, color = "black", size = 3.5, fontface = "bold",  # Center aligned with hjust = 0.5
+      hjust = 1.2, color = "black", size = 5.5, fontface = "bold",  # Center aligned with hjust = 0.5
       inherit.aes = FALSE
     )
   
   return(p)
   
 }
-
 plot_significant_relationship(data = TARA_Untreated_Freq_K562, x_var = 'KLRG1', facet_var = 'Timepoint')
+ggsave('test.png', width = 8.5, height = 6, dpi = 300, bg = 'white')
 
 # Display the correlation results per timepoint
 print(correlation_results)
@@ -399,7 +399,7 @@ sig_relationships_florah <- function(data, x_var, y_var = "Specific Killing") {
     theme(
       legend.position = "top",
       legend.title = element_blank(),
-      legend.text = element_text(size = 14),  # Increase text size for HEI and HEU
+      legend.text = element_text(size = 16),  # Increase text size for HEI and HEU
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_rect(fill = "#f7f7f7", color = NA),
@@ -454,16 +454,17 @@ plot_effect_estimates <- function(results) {
     geom_point(size = 6, color = "#0073C2FF") +  # Increased dot size and kept the solid blue color
     geom_errorbarh(aes(xmin = Estimate - Std.Error, xmax = Estimate + Std.Error), height = 0.3, color = "#D55E00") +  # Darker and more saturated error bar color (burnt orange)
     labs(x = "Effect Estimate", y = "Effect by Subset") +
-    theme_minimal(base_size = 14) +  # Larger base font size for better readability
-    theme(axis.text.y = element_text(size = 14, color = "darkblue"),  # Darken y-axis labels and increase size
-          axis.text.x = element_text(size = 14, color = "darkblue"),  # Increase and darken x-axis labels for effect size
-          axis.title = element_text(size = 14, face = "bold", color = "darkred"),
+    theme_minimal(base_size = 16) +  # Larger base font size for better readability
+    theme(axis.text.y = element_text(size = 18, color = "darkblue"),  # Darken y-axis labels and increase size
+          axis.text.x = element_text(size = 18, color = "darkblue"),  # Increase and darken x-axis labels for effect size
+          axis.title = element_text(size = 20, face = "bold", color = "darkred"),
           panel.grid.major.y = element_line(color = "lightgray", linetype = "dashed"),  # Light grid lines for clarity
           panel.grid.major.x = element_line(color = "lightgray", linetype = "dashed")) +
-    theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),  # Centered title
+    theme(plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),  # Centered title
           plot.margin = margin(1, 1, 1, 1, "cm"))
 }
-
+plot_effect_estimates(HUT78_SK_sm)
+ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_significant.png", width = 9, height = 5, dpi = 300,bg='white')
 ######### HUT 78 - TARA ##########
 
 setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/HUT78")
@@ -519,7 +520,7 @@ K562_SK_sm <- summarize_models(K562_SK_ml)
 
 # Remove rows where 'Subset' is exactly "NKG2A-" or "CD107A-"
 K562_SK_sm_filtered <- K562_SK_sm %>%
-  filter(!Subset %in% c("NKG2A-", "CD107A-"))
+  filter(!Subset %in% c("NKG2A-", "CD107A-","CD107a-", "CD107a total", "CD56dimCD16+/CD107a total","CD56bright/CD107a-Granzyme B-Perforin-"))
 
 K562_SK_sm_filtered
 
@@ -527,6 +528,7 @@ K562_SK_sm_filtered
 
 
 plot_effect_estimates(K562_SK_sm_filtered)
+
 ggsave("Mixed_Effects_Models_Forrest_Plot_K562_significant.png", width = 9, height = 6.6, dpi = 300,bg='white')
 
 
@@ -573,10 +575,12 @@ K562_U_SK_sm <- summarize_models(K562_U_SK_ml)
 # Remove only rows where 'Subset' ends with a negative sign (-)
 K562_U_SK_sm_filtered <- K562_U_SK_sm %>%
   filter(!grepl("-$", Subset))
-         
 K562_U_SK_sm_filtered
+K562_U_SK_sm_filtered_2 <- K562_U_SK_sm_filtered %>%
+  filter(!Subset %in% c("IFNy", "CD56bright/TNFa","TNFa"))
 
-plot_effect_estimates(K562_U_SK_sm_filtered)
+
+plot_effect_estimates(K562_U_SK_sm_filtered_2)
 ggsave("Mixed_Effects_Models_Forrest_Plot_K562_Untreated__significant.png", width = 9, height = 8, dpi = 300,bg='white')
 
 
@@ -670,26 +674,48 @@ setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model")
 
 plot1 <- plot_effect_estimates(HUT78_U_SK_sm) + ggtitle("HUT78 Effects on Specific Killing (Before Co-culture)")
 plot2 <-  plot_effect_estimates(HUT78_SK_sm) +  ggtitle("HUT78 Effects on Specific Killing (After Co-culture)")
-plot3 <- plot_effect_estimates(K562_U_SK_sm_filtered) + ggtitle("K562 Effects on Specific Killing (Before Co-culture)")
+plot3 <- plot_effect_estimates(K562_U_SK_sm_filtered_2) + ggtitle("K562 Effects on Specific Killing (Before Co-culture)")
 plot4 <- plot_effect_estimates(K562_SK_sm_filtered) + ggtitle("K562 Effects on Specific Killing (After Co-culture)")
 
 combined_plot <- (plot1 | plot2) / (plot3 | plot4)
 combined_plot
 
-ggsave("Mixed_Effects_Models_Forrest_Plot_ALL.png", width = 24, height = 17, dpi = 300,bg='white')
+ggsave("Mixed_Effects_Models_Forrest_Plot_ALL.png", width = 27, height = 17, dpi = 300,bg='white')
 
-plot5 <- plot_significant_relationship(data = TARA_HUT78_Freq, x_var = 'CD56dimCD16+/FasL')+ ggtitle("Specific Killing VS CD56dimCD16+/FasL (HUT78)")
-plot6 <- plot_significant_relationship(data = TARA_K562_Freq, x_var = 'CD56dimCD16+/FasL')+ ggtitle("Specific Killing VS CD56dimCD16+/FasL (K562)")
+plot5 <- plot_significant_relationship(data = TARA_HUT78_Freq, x_var = 'CD56dimCD16+/FasL')+ ggtitle("Specific Killing VS CD56dimCD16+/FasL (HUT78)") +
+  theme(plot.title = element_text(size = 20))
+plot6 <- plot_significant_relationship(data = TARA_K562_Freq, x_var = 'CD56dimCD16+/FasL')+ ggtitle("Specific Killing VS CD56dimCD16+/FasL (K562)") +
+  theme(plot.title = element_text(size = 20))
+
 combined_plot2 <- (plot5 | plot6)
 combined_plot2
 ggsave("FASL_plot_ALL.png", width = 22, height = 9, dpi = 300,bg='white')
 
 
-plot7 <- plot_significant_relationship(data = TARA_HUT78_Freq, x_var = 'CD107a+Granzyme B+Perforin+')+ ggtitle("Specific Killing VS CD107a+Granzyme B+Perforin+ (HUT78)")
-plot8 <- plot_significant_relationship(data = TARA_K562_Freq, x_var = 'CD107a+Granzyme B+Perforin+')+ ggtitle("Specific Killing VS CD107a+Granzyme B+Perforin+ (K562)")
+plot7 <- plot_significant_relationship(data = TARA_HUT78_Freq, x_var = 'CD107a+Granzyme B+Perforin+')+ ggtitle("Specific Killing VS CD107a+Granzyme B+Perforin+ (HUT78)")+
+  theme(plot.title = element_text(size = 20))
+plot8 <- plot_significant_relationship(data = TARA_K562_Freq, x_var = 'CD107a+Granzyme B+Perforin+')+ ggtitle("Specific Killing VS CD107a+Granzyme B+Perforin+ (K562)")+
+  theme(plot.title = element_text(size = 20))
 combined_plot3 <- (plot7 | plot8)
 combined_plot3
 ggsave("CD107a_plot_ALL.png", width = 22, height = 9, dpi = 300,bg='white')
+
+
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/Fig4")
+
+
+ggsave("Mixed_Effects_Models_Forrest_Plot_HUT_Before_Coculture.png", width = 11, height = 6, dpi = 300,bg='white',plot1)
+ggsave("Mixed_Effects_Models_Forrest_Plot_HUT_After_Coculture.png", width = 11, height = 6, dpi = 300,bg='white',plot2)
+ggsave("Mixed_Effects_Models_Forrest_Plot_K562_Before_Coculture.png", width = 16, height = 8, dpi = 300,bg='white',plot3)
+ggsave("Mixed_Effects_Models_Forrest_Plot_K562_After_Coculture.png", width = 16, height = 8, dpi = 300,bg='white',plot4)
+
+ggsave("FAsl_Plot_HUT_After_Coculture.png", width = 9, height = 6, dpi = 300,bg='white',plot5)
+ggsave("FAsl_Plot_K562_After_Coculture.png", width = 9, height = 6, dpi = 300,bg='white',plot6)
+ggsave("CD107a_Plot_HUT_After_Coculture.png", width = 9, height = 6, dpi = 300,bg='white',plot7)
+ggsave("CD107a_Plot_K562_After_Coculture.png", width = 9, height = 6, dpi = 300,bg='white',plot8)
+
+
+
 
 ################# FLORAH ###########
 
@@ -910,3 +936,148 @@ ggplot(fasl_df, aes(x = `CD56dimCD16+/FasL`, y = emmean)) +
     panel.grid.major = element_line(linetype = "dotted", color = "gray80")  # Dotted major grid lines
   )
 ggsave("HUT78_FASL_Linear Model.png", width = 8, height = 6,bg = 'white')
+
+###########
+##########
+plot_significant_relationship_G <- function(data, x_var, y_var = "Specific Killing", color_var = "gender") {
+  
+  # Check if color_var exists in the data; if not, stop with an error message
+  if (!(color_var %in% colnames(data))) {
+    stop(paste("Column", color_var, "is not found in the dataset. Please check your input."))
+  }
+  
+  # Calculate the global Pearson correlation for the entire dataset
+  pearson_correlation <- cor(data[[x_var]], data[[y_var]], method = "pearson")
+  pearson_p_value <- cor.test(data[[x_var]], data[[y_var]], method = "pearson")$p.value
+  
+  # Create a common label for the global Pearson correlation
+  global_correlation_label <- paste0(
+    "Global Pearson r = ", round(pearson_correlation, 2), ", p = ", signif(pearson_p_value, 3)
+  )
+  
+  # Create the plot without faceting, colored by gender
+  p <- ggplot(data, aes_string(x = paste0("`", x_var, "`"), y = paste0("`", y_var, "`"))) +
+    geom_point(aes(color = .data[[color_var]]), size = 4, alpha = 0.8) +  # Color points by gender
+    geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "solid", size = 1.2) +  # Regression line
+    labs(
+      title = paste(y_var, "Vs", x_var),
+      subtitle = paste(global_correlation_label),  # Add global correlation to subtitle
+      x = x_var,
+      y = y_var
+    ) +
+    scale_color_manual(values = c("male" = "#FF6347", "female" = "#32CD32")) +  # Custom colors for gender (red for male, green for female)
+    theme_minimal(base_size = 16) +
+    theme(
+      legend.position = "top",
+      legend.title = element_blank(),
+      legend.text = element_text(size = 14),  # Increase text size for gender
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "#f7f7f7", color = NA),
+      plot.title = element_text(face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5),  # Ensure the subtitle is centered
+      axis.title = element_text(face = "bold"),
+      strip.background = element_rect(fill = "#e0e0e0", color = NA),
+      strip.text = element_text(face = "bold")
+    )
+  
+  return(p)
+}
+
+plot_significant_relationship(data = TARA_Untreated_Freq_HUT78, x_var = 'KLRG1', facet_var = 'gender') + ggtitle("Specific Killing VS KLRG1 (HUT78 Before Co-culture)")
+
+plot_significant_relationship_G(TARA_Untreated_Freq_HUT78, "KLRG1", "Specific Killing", "gender")
+
+library(ggplot2)
+library(rlang)
+
+plot_klrg1_gender_scatter <- function(data, x_var = "KLRG1", y_var = "Specific Killing", color_var = "gender") {
+  
+  # Check if required columns exist
+  if (!(x_var %in% colnames(data))) {
+    stop(paste("Column", x_var, "is not found in the dataset. Please check your input."))
+  }
+  if (!(y_var %in% colnames(data))) {
+    stop(paste("Column", y_var, "is not found in the dataset. Please check your input."))
+  }
+  if (!(color_var %in% colnames(data))) {
+    stop(paste("Column", color_var, "is not found in the dataset. Please check your input."))
+  }
+  
+  # Create the scatter plot with regression lines
+  p <- ggplot(data, aes(x = !!sym(x_var), y = !!sym(y_var), color = !!sym(color_var))) +
+    geom_point(size = 3, alpha = 0.7) +  # Scatter points with transparency
+    geom_smooth(method = "lm", se = TRUE, size = 1.2) +  # Linear regression line with confidence interval
+    labs(
+      title = paste(y_var, "vs", x_var, "by Gender"),
+      x = x_var,
+      y = y_var
+    ) +
+    scale_color_manual(values = c("male" = "#FF6347", "female" = "#32CD32")) +  # Custom colors for gender
+    theme_minimal(base_size = 16) +
+    theme(
+      legend.position = "top",
+      legend.title = element_blank(),
+      legend.text = element_text(size = 14),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "#f7f7f7", color = NA),
+      plot.title = element_text(face = "bold", hjust = 0.5),
+      axis.title = element_text(face = "bold"),
+      strip.background = element_rect(fill = "#e0e0e0", color = NA),
+      strip.text = element_text(face = "bold")
+    )
+  
+  return(p)
+}
+
+
+plot_klrg1_gender_scatter(TARA_Untreated_Freq_HUT78, "Total NK", "Specific Killing", "gender")
+
+ggsave("HUT78_Untreated_KLRG1_SKvsGender_Scatter.png", width = 8, height = 6,bg = 'white')
+
+compare_KLRG1_slopes <- function(data, x_var = "KLRG1", y_var = "Specific Killing", gender_var = "gender") {
+  
+  # Check if required columns exist
+  if (!(x_var %in% colnames(data))) {
+    stop(paste("Column", x_var, "is not found in the dataset. Please check your input."))
+  }
+  if (!(y_var %in% colnames(data))) {
+    stop(paste("Column", y_var, "is not found in the dataset. Please check your input."))
+  }
+  if (!(gender_var %in% colnames(data))) {
+    stop(paste("Column", gender_var, "is not found in the dataset. Please check your input."))
+  }
+  
+  # Convert gender variable to a factor if it's not already
+  data[[gender_var]] <- as.factor(data[[gender_var]])
+  
+  # Fit separate regression models for males and females
+  model_male <- lm(as.formula(paste0("`", y_var, "` ~ `", x_var, "`")), data = data[data[[gender_var]] == "male", ])
+  model_female <- lm(as.formula(paste0("`", y_var, "` ~ `", x_var, "`")), data = data[data[[gender_var]] == "female", ])
+  
+  # Extract slopes (coefficients for KLRG1)
+  slope_male <- coef(model_male)[x_var]
+  slope_female <- coef(model_female)[x_var]
+  
+  # Extract standard errors
+  se_male <- summary(model_male)$coefficients[x_var, "Std. Error"]
+  se_female <- summary(model_female)$coefficients[x_var, "Std. Error"]
+  
+  # Compute Z-score for slope difference
+  z_score <- (slope_male - slope_female) / sqrt(se_male^2 + se_female^2)
+  
+  # Compute p-value for slope difference
+  p_value <- 2 * (1 - pnorm(abs(z_score)))
+  
+  # Print results
+  cat("Slope for Males:", round(slope_male, 3), "\n")
+  cat("Slope for Females:", round(slope_female, 3), "\n")
+  cat("Z-score for Difference in Slopes:", round(z_score, 3), "\n")
+  cat("P-value for Difference in Slopes:", round(p_value, 6), "\n")
+  
+  return(p_value)
+}
+
+
+compare_KLRG1_slopes(TARA_Untreated_Freq_HUT78, "P4", "Specific Killing", "gender")
