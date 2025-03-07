@@ -991,7 +991,7 @@ plot_significant_relationship_G(TARA_Untreated_Freq_HUT78, "KLRG1", "Specific Ki
 library(ggplot2)
 library(rlang)
 
-plot_klrg1_gender_scatter <- function(data, x_var = "KLRG1", y_var = "Specific Killing", color_var = "gender") {
+plot_scatter <- function(data, x_var = "KLRG1", y_var = "Specific Killing", color_var = "gender") {
   
   # Check if required columns exist
   if (!(x_var %in% colnames(data))) {
@@ -1004,20 +1004,37 @@ plot_klrg1_gender_scatter <- function(data, x_var = "KLRG1", y_var = "Specific K
     stop(paste("Column", color_var, "is not found in the dataset. Please check your input."))
   }
   
+  # Define axis label based on the color variable
+  color_label <- case_when(
+    color_var == "gender" ~ "Gender",
+    color_var == "HIV" ~ "HIV Status",
+    color_var == "Timepoint" ~ "Timepoint",
+    TRUE ~ color_var  # Default case, keep it as is
+  )
+  
+  # Define custom colors based on the color variable
+  color_mapping <- case_when(
+    color_var == "gender" ~ c("male" = "#FF6347", "female" = "#32CD32"),  # Red & Green
+    color_var == "HIV" ~ c("HEI" = "#fc913f", "HEU" = "#5bbae3"),  #
+    color_var == "Timepoint" ~ c("Entry" = "#228B22", "12" = "#800080"),  # Dark Green & Purple
+    TRUE ~ c("default" = "#000000")  # Black for any undefined case
+  )
+  
   # Create the scatter plot with regression lines
   p <- ggplot(data, aes(x = !!sym(x_var), y = !!sym(y_var), color = !!sym(color_var))) +
     geom_point(size = 3, alpha = 0.7) +  # Scatter points with transparency
     geom_smooth(method = "lm", se = TRUE, size = 1.2) +  # Linear regression line with confidence interval
     labs(
-      title = paste(y_var, "vs", x_var, "by Gender"),
+      title = paste(y_var, "vs", x_var, "by", color_label),
       x = x_var,
-      y = y_var
+      y = y_var,
+      color = color_label  # Legend title
     ) +
-    scale_color_manual(values = c("male" = "#FF6347", "female" = "#32CD32")) +  # Custom colors for gender
+    scale_color_manual(values = color_mapping) +  # Apply custom colors
     theme_minimal(base_size = 16) +
     theme(
       legend.position = "top",
-      legend.title = element_blank(),
+      legend.title = element_text(size = 14, face = "bold"),
       legend.text = element_text(size = 14),
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
@@ -1031,53 +1048,161 @@ plot_klrg1_gender_scatter <- function(data, x_var = "KLRG1", y_var = "Specific K
   return(p)
 }
 
+library(purrr)
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/Supplimentary_Fig")
 
-plot_klrg1_gender_scatter(TARA_Untreated_Freq_HUT78, "Total NK", "Specific Killing", "gender")
 
-ggsave("HUT78_Untreated_KLRG1_SKvsGender_Scatter.png", width = 8, height = 6,bg = 'white')
+###K562 Untreated
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/Supplimentary_Fig/K562_Untreated")
 
-compare_KLRG1_slopes <- function(data, x_var = "KLRG1", y_var = "Specific Killing", gender_var = "gender") {
+### Keep plotting columns
+K562_U_SK_sm_filtered_plot <- K562_U_SK_sm_filtered_2 %>%
+  filter(Effect %in% c("HIVHEI", "gendermale", "Timepoint12"))
+
+
+# Modify the 'Effect' column to match the required replacements
+K562_U_SK_sm_filtered_plot <- K562_U_SK_sm_filtered_plot %>%
+  mutate(Effect = case_when(
+    Effect == "gendermale" ~ "gender",
+    Effect == "Timepoint12" ~ "Timepoint",
+    Effect == "HIVHEI" ~ "HIV",
+    TRUE ~ Effect  # Keep everything else unchanged
+  ))
+
+K562_U_SK_sm_filtered_plot
+
+#Loop over each row and generate/save plots
+for (i in seq_len(nrow(K562_U_SK_sm_filtered_plot))) {
+  # Extract values from current row
+  subset_name <- K562_U_SK_sm_filtered_plot$Subset[i]
+  effect_name <- K562_U_SK_sm_filtered_plot$Effect[i]
   
-  # Check if required columns exist
-  if (!(x_var %in% colnames(data))) {
-    stop(paste("Column", x_var, "is not found in the dataset. Please check your input."))
-  }
-  if (!(y_var %in% colnames(data))) {
-    stop(paste("Column", y_var, "is not found in the dataset. Please check your input."))
-  }
-  if (!(gender_var %in% colnames(data))) {
-    stop(paste("Column", gender_var, "is not found in the dataset. Please check your input."))
-  }
+  # Generate the plot
+  p <- plot_scatter(TARA_Untreated_Freq_K562, subset_name, "Specific Killing", effect_name)
   
-  # Convert gender variable to a factor if it's not already
-  data[[gender_var]] <- as.factor(data[[gender_var]])
+  # Define filename dynamically
+  file_name <- paste0("K562_Untreated_", gsub("[^A-Za-z0-9_]", "_", subset_name), "_", effect_name, "_plot.png")
   
-  # Fit separate regression models for males and females
-  model_male <- lm(as.formula(paste0("`", y_var, "` ~ `", x_var, "`")), data = data[data[[gender_var]] == "male", ])
-  model_female <- lm(as.formula(paste0("`", y_var, "` ~ `", x_var, "`")), data = data[data[[gender_var]] == "female", ])
+  # Save the plot
+  ggsave(file_name, plot = p, width = 8, height = 6, bg = 'white')
   
-  # Extract slopes (coefficients for KLRG1)
-  slope_male <- coef(model_male)[x_var]
-  slope_female <- coef(model_female)[x_var]
+  print(paste("Saved:", file_name))  # Optional print statement to confirm saved file
+}
+
+###HUT78 Untreated
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/Supplimentary_Fig/HUT78_Untreated")
+
+### Keep plotting columns
+HUT78_U_SK_sm_plot <- HUT78_U_SK_sm %>%
+  filter(Effect %in% c("HIVHEI", "gendermale", "Timepoint12"))
+
+
+# Modify the 'Effect' column to match the required replacements
+HUT78_U_SK_sm_plot <- HUT78_U_SK_sm_plot %>%
+  mutate(Effect = case_when(
+    Effect == "gendermale" ~ "gender",
+    Effect == "Timepoint12" ~ "Timepoint",
+    Effect == "HIVHEI" ~ "HIV",
+    TRUE ~ Effect  # Keep everything else unchanged
+  ))
+
+HUT78_U_SK_sm_plot
+
+#Loop over each row and generate/save plots
+for (i in seq_len(nrow(HUT78_U_SK_sm_plot))) {
+  # Extract values from current row
+  subset_name <- HUT78_U_SK_sm_plot$Subset[i]
+  effect_name <- HUT78_U_SK_sm_plot$Effect[i]
   
-  # Extract standard errors
-  se_male <- summary(model_male)$coefficients[x_var, "Std. Error"]
-  se_female <- summary(model_female)$coefficients[x_var, "Std. Error"]
+  # Generate the plot
+  p <- plot_scatter(TARA_Untreated_Freq_HUT78, subset_name, "Specific Killing", effect_name)
   
-  # Compute Z-score for slope difference
-  z_score <- (slope_male - slope_female) / sqrt(se_male^2 + se_female^2)
+  # Define filename dynamically
+  file_name <- paste0("HUT78_Untreated_", gsub("[^A-Za-z0-9_]", "_", subset_name), "_", effect_name, "_plot.png")
   
-  # Compute p-value for slope difference
-  p_value <- 2 * (1 - pnorm(abs(z_score)))
+  # Save the plot
+  ggsave(file_name, plot = p, width = 8, height = 6, bg = 'white')
   
-  # Print results
-  cat("Slope for Males:", round(slope_male, 3), "\n")
-  cat("Slope for Females:", round(slope_female, 3), "\n")
-  cat("Z-score for Difference in Slopes:", round(z_score, 3), "\n")
-  cat("P-value for Difference in Slopes:", round(p_value, 6), "\n")
+  print(paste("Saved:", file_name))  # Optional print statement to confirm saved file
+}
+
+###K562
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/Supplimentary_Fig/K562")
+
+### Keep plotting columns
+K562_SK_sm_filtered_plot <- K562_SK_sm_filtered %>%
+  filter(Effect %in% c("HIVHEI", "gendermale", "Timepoint12"))
+
+
+# Modify the 'Effect' column to match the required replacements
+K562_SK_sm_filtered_plot <- K562_SK_sm_filtered_plot %>%
+  mutate(Effect = case_when(
+    Effect == "gendermale" ~ "gender",
+    Effect == "Timepoint12" ~ "Timepoint",
+    Effect == "HIVHEI" ~ "HIV",
+    TRUE ~ Effect  # Keep everything else unchanged
+  ))
+
+K562_SK_sm_filtered_plot
+
+#Loop over each row and generate/save plots
+for (i in seq_len(nrow(K562_SK_sm_filtered_plot))) {
+  # Extract values from current row
+  subset_name <- K562_SK_sm_filtered_plot$Subset[i]
+  effect_name <- K562_SK_sm_filtered_plot$Effect[i]
   
-  return(p_value)
+  # Generate the plot
+  p <- plot_scatter(TARA_K562_Freq, subset_name, "Specific Killing", effect_name)
+  
+  # Define filename dynamically
+  file_name <- paste0("K562_", gsub("[^A-Za-z0-9_]", "_", subset_name), "_", effect_name, "_plot.png")
+  
+  # Save the plot
+  ggsave(file_name, plot = p, width = 8, height = 6, bg = 'white')
+  
+  print(paste("Saved:", file_name))  # Optional print statement to confirm saved file
+}
+
+###HUT78 Untreated
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/Supplimentary_Fig/HUT78")
+
+### Keep plotting columns
+HUT78_SK_sm_plot <- HUT78_SK_sm %>%
+  filter(Effect %in% c("HIVHEI", "gendermale", "Timepoint12"))
+
+
+# Modify the 'Effect' column to match the required replacements
+HUT78_SK_sm_plot <- HUT78_SK_sm_plot %>%
+  mutate(Effect = case_when(
+    Effect == "gendermale" ~ "gender",
+    Effect == "Timepoint12" ~ "Timepoint",
+    Effect == "HIVHEI" ~ "HIV",
+    TRUE ~ Effect  # Keep everything else unchanged
+  ))
+
+HUT78_SK_sm_plot
+
+#Loop over each row and generate/save plots
+for (i in seq_len(nrow(HUT78_SK_sm_plot))) {
+  # Extract values from current row
+  subset_name <- HUT78_SK_sm_plot$Subset[i]
+  effect_name <- HUT78_SK_sm_plot$Effect[i]
+  
+  # Generate the plot
+  p <- plot_scatter(TARA_HUT78_Freq, subset_name, "Specific Killing", effect_name)
+  
+  # Define filename dynamically
+  file_name <- paste0("HUT78_", gsub("[^A-Za-z0-9_]", "_", subset_name), "_", effect_name, "_plot.png")
+  
+  # Save the plot
+  ggsave(file_name, plot = p, width = 8, height = 6, bg = 'white')
+  
+  print(paste("Saved:", file_name))  # Optional print statement to confirm saved file
 }
 
 
-compare_KLRG1_slopes(TARA_Untreated_Freq_HUT78, "P4", "Specific Killing", "gender")
+
+TARA_HUT78_Freq # HUT78 Post Coculture
+#FasL                   Timepoint
+#CD56dimCD16+/FasL                   Timepoint
+
