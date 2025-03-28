@@ -1045,6 +1045,7 @@ annotation_info <- data.frame(
   row.names = col_groups
 )
 
+col_groups
 # Step 2: Order columns by Condition, then FASL+ before FASL-
 ordered_cols <- annotation_info %>%
   mutate(FASL_order = ifelse(FASL_Status == "FASL+", 1, 2)) %>%
@@ -1054,15 +1055,15 @@ ordered_cols <- annotation_info %>%
 # Step 3: Reorder the matrix
 fasl1_matrix <- fasl1_matrix[, ordered_cols]
 annotation_info <- annotation_info[ordered_cols, ]
-
+annotation_info$Condition
 # Step 4: Optional colors
 library(RColorBrewer)
 ann_colors <- list(
-  Condition = setNames(brewer.pal(length(unique(annotation_info$Condition)), "Set2"), 
+  Condition = setNames(brewer.pal(length(unique(annotation_info$Condition)), "Set3"), 
                        unique(annotation_info$Condition)),
   FASL_Status = c("FASL+" = "#D73027", "FASL-" = "#4575B4")
 )
-
+annotation_info$Condition
 # Step 5: Plot heatmap
 pheatmap(as.matrix(fasl1_matrix),
          main = "FASL+ vs FASL- by Treatment Condition",
