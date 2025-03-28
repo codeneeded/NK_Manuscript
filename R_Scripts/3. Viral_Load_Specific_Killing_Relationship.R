@@ -562,3 +562,133 @@ ggsave("FLORAH_HUT78_Corr_barplot_vs_Specific_Killing.png", width = 10, height =
 plot_correlations(k562_correlations_with_specific_killing, "Correlation of Variables with Specific Killing (K562)")
 ggsave("FLORAH_K562_Corr_barplot_vs_Specific_Killing.png", width = 10, height = 17, dpi = 300,bg='white')
 
+
+#### Correlation Plots ####
+# Load necessary packages
+library(Hmisc)
+library(corrplot)
+
+setwd("C:/Users/ammas/Documents/NK_Manuscript/Corrplots")
+
+# Subset the dataframe
+droplevels(tara_Freq)
+levels(tara_Freq$Treatment)
+subset_data <- tara_Freq[, c(20:22, 54, 80:81,83:98)]
+# Compute correlation matrix and p-values
+cor_matrix <- rcorr(as.matrix(subset_data))
+
+# Extract correlation coefficients and p-values
+cor_values <- cor_matrix$r
+p_values <- cor_matrix$P
+p_values[is.na(p_values)] <- 1
+
+# Create a significance level threshold (e.g., p < 0.05)
+sig_level <- 0.05
+
+# Function to annotate the correlation matrix
+stars <- function(p) {
+  ifelse(p < .001, "***", ifelse(p < .01, "**", ifelse(p < .05, "*", "")))
+}
+
+# Apply the star function to p-values
+cor_with_stars <- matrix(paste(format(round(cor_values, 2), nsmall = 2), stars(p_values), sep=""), 
+                         nrow=nrow(cor_values))
+
+# Remove the stars in the diagonal
+diag(cor_with_stars) <- format(round(diag(cor_values), 2), nsmall = 2)
+###
+
+
+png("correlation_plot_all.png", width = 4000, height = 2400, res = 300)
+
+corrplot(cor_values, method = "color", 
+         type = "lower",  # Show only the lower triangle
+         col = colorRampPalette(c("darkblue", "white", "darkred"))(200),  # Blue for low, red for high correlations
+         tl.col = "black", tl.srt = 45, tl.cex = 0.8,  # Smaller text for labels
+         p.mat = p_values, sig.level = sig_level, 
+         insig = "label_sig", # Show significance stars
+         pch.col = "red", pch.cex = 1.5, # Customize star color and size
+         cl.cex = 0.8,  # Smaller text in color legend
+         mar = c(0, 0, 0, 0))  # Adjust margins for larger boxes
+# Add the title
+title(main = "Corrplot: All Groups", cex.main = 1)
+# Close the device to save the file
+dev.off()
+
+
+#### Create table with r and p values
+# Get variable names
+vars <- colnames(subset_data)
+
+# Create a data frame of all unique combinations
+cor_table <- expand.grid(Var1 = vars, Var2 = vars, stringsAsFactors = FALSE)
+
+# Remove duplicates and self-comparisons (keep lower triangle only)
+cor_table <- cor_table[as.vector(lower.tri(cor_values, diag = FALSE)), ]
+
+# Add correlation and p-values
+cor_table$r <- cor_values[lower.tri(cor_values)]
+cor_table$p <- p_values[lower.tri(p_values)]
+
+# Optional: Add significance stars
+cor_table$Significance <- ifelse(cor_table$p < .001, "***",
+                                 ifelse(cor_table$p < .01, "**",
+                                        ifelse(cor_table$p < .05, "*", "")))
+
+# Optional: Round for readability
+cor_table$r <- round(cor_table$r, 2)
+cor_table$p <- signif(cor_table$p, 2)
+write.csv(cor_table, "correlation_results_table_ALL_Groups.csv", row.names = FALSE)
+
+##### Per Treatment #########
+# Define significance threshold
+sig_level <- 0.05
+
+# Filter out specific treatments
+filtered_treatments <- grep("^(9218|9228|.+\\+9218|.+\\+9228)$", levels(tara_Freq$Treatment), invert = TRUE, value = TRUE)
+
+# Subset the data
+tara_Freq_filtered <- tara_Freq[tara_Freq$Treatment %in% filtered_treatments, ]
+
+# Loop through each remaining treatment
+for (treatment in filtered_treatments) {
+  
+  # Subset and clean data
+  subset_data <- tara_Freq_filtered[tara_Freq_filtered$Treatment == treatment, c(20:22, 56, 90:109)]
+  subset_data <- na.omit(subset_data)
+  
+  # Skip empty or too-small subsets
+  if (nrow(subset_data) < 5) next
+  
+  # Compute correlations
+  cor_matrix <- rcorr(as.matrix(subset_data))
+  cor_values <- cor_matrix$r
+  p_values <- cor_matrix$P
+  p_values[is.na(p_values)] <- 1
+  
+  # Save correlation plot
+  png(paste0("correlation_plot_", treatment, ".png"), width = 4000, height = 2400, res = 300)
+  corrplot(cor_values, method = "color", 
+           type = "lower", col = colorRampPalette(c("darkblue", "white", "darkred"))(200),
+           tl.col = "black", tl.srt = 45, tl.cex = 0.8,
+           p.mat = p_values, sig.level = sig_level,
+           insig = "label_sig", pch.col = "red", pch.cex = 1.5,
+           cl.cex = 0.8, mar = c(0, 0, 0, 0))
+  title(main = paste("Corrplot: Treatment", treatment), cex.main = 1.5)
+  dev.off()
+  
+  # Make correlation table
+  vars <- colnames(subset_data)
+  cor_table <- expand.grid(Var1 = vars, Var2 = vars, stringsAsFactors = FALSE)
+  cor_table <- cor_table[as.vector(lower.tri(cor_values, diag = FALSE)), ]
+  cor_table$r <- cor_values[lower.tri(cor_values)]
+  cor_table$p <- p_values[lower.tri(p_values)]
+  cor_table$Significance <- ifelse(cor_table$p < .001, "***",
+                                   ifelse(cor_table$p < .01, "**",
+                                          ifelse(cor_table$p < .05, "*", "")))
+  cor_table$r <- round(cor_table$r, 2)
+  cor_table$p <- signif(cor_table$p, 2)
+  
+  # Save the table
+  write.csv(cor_table, paste0("correlation_table_", treatment, ".csv"), row.names = FALSE)
+}

@@ -982,3 +982,163 @@ for (marker_cluster in significant_markers$Marker) {
   ggsave(filename = paste0("Plot_", marker_cluster, ".png"), plot = plot, width = 12, height = 7, dpi = 300, bg='White')
   
 }
+
+############### Fig 6 Manuscript #############################
+library(dplyr)
+library(tidyr)
+library(pheatmap)
+library(tibble)
+
+############ Splitting the data into FASL+ and FASL- poppulations
+setwd("C:/Users/ammas/Documents/NK_Manuscript/FLOWSOM/TARA/Results/FASL_Split")
+
+
+# Plot histogram for cluster 1
+ggplot(all.flow[all.flow$Ordered_Clusters == 1, ], aes(x = `FASL (CD178)`)) +
+  geom_histogram(binwidth = 0.2, fill = "skyblue", color = "black") +
+  geom_vline(xintercept = c(1, 2, 3), linetype = "dashed", color = "red") +
+  theme_minimal() +
+  labs(title = "FASL Expression in Cluster 1", x = "Arcsinh(MFI)", y = "Count")
+ggsave(filename = "FasL_Cuttoff_Points.png", width = 12, height = 7, dpi = 300, bg='White')
+
+# Initialize columns with NA
+all.flow$FASL_1 <- NA
+all.flow$FASL_2 <- NA
+
+# Column 1: FASL_1 — cutoff >1
+all.flow$FASL_1[all.flow$Ordered_Clusters == 1 & all.flow$`FASL (CD178)` <= 0] <- "FASL-"
+all.flow$FASL_1[all.flow$Ordered_Clusters == 1 & all.flow$`FASL (CD178)` > 1] <- "FASL+"
+
+# Column 2: FASL_2 — cutoff >2
+all.flow$FASL_2[all.flow$Ordered_Clusters == 1 & all.flow$`FASL (CD178)` <= 0] <- "FASL-"
+all.flow$FASL_2[all.flow$Ordered_Clusters == 1 & all.flow$`FASL (CD178)` > 2] <- "FASL+"
+
+
+#### <1 ##############
+
+# Define marker columns (44:69)
+marker_cols <- colnames(all.flow)[44:69]
+marker_cols <- marker_cols[!marker_cols %in% colnames(all.flow)[c(51,62, 64)]]
+
+# Filter Cluster 1 and non-NA FASL_1
+fasl1_data <- all.flow %>%
+  filter(Ordered_Clusters == 1, !is.na(FASL_1))
+
+# Calculate mean expression by Condition and FASL_1 status
+fasl1_summary <- fasl1_data %>%
+  group_by(Condition, FASL_1) %>%
+  summarise(across(all_of(marker_cols), mean, na.rm = TRUE), .groups = "drop")
+
+# Reshape for heatmap
+fasl1_matrix <- fasl1_summary %>%
+  pivot_longer(cols = all_of(marker_cols), names_to = "Marker", values_to = "Expression") %>%
+  unite("Group", Condition, FASL_1, sep = "_") %>%
+  pivot_wider(names_from = Group, values_from = Expression) %>%
+  column_to_rownames("Marker")
+
+# Step 1: Extract condition and FASL status
+col_groups <- colnames(fasl1_matrix)
+
+annotation_info <- data.frame(
+  Condition = gsub("_FASL.*", "", col_groups),
+  FASL_Status = gsub(".*_FASL", "FASL", col_groups),
+  row.names = col_groups
+)
+
+# Step 2: Order columns by Condition, then FASL+ before FASL-
+ordered_cols <- annotation_info %>%
+  mutate(FASL_order = ifelse(FASL_Status == "FASL+", 1, 2)) %>%
+  arrange(Condition, FASL_order) %>%
+  rownames()
+
+# Step 3: Reorder the matrix
+fasl1_matrix <- fasl1_matrix[, ordered_cols]
+annotation_info <- annotation_info[ordered_cols, ]
+
+# Step 4: Optional colors
+library(RColorBrewer)
+ann_colors <- list(
+  Condition = setNames(brewer.pal(length(unique(annotation_info$Condition)), "Set2"), 
+                       unique(annotation_info$Condition)),
+  FASL_Status = c("FASL+" = "#D73027", "FASL-" = "#4575B4")
+)
+
+# Step 5: Plot heatmap
+pheatmap(as.matrix(fasl1_matrix),
+         main = "FASL+ vs FASL- by Treatment Condition",
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         scale = "row",
+         annotation_col = annotation_info,
+         annotation_colors = ann_colors)
+
+png("FASL_cutoff1_heatmap.png", width = 3000, height = 3000, res = 300)
+
+pheatmap(as.matrix(fasl1_matrix),
+         main = "FASL+ vs FASL- by Treatment Condition",
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         scale = "row",
+         annotation_col = annotation_info,
+         annotation_colors = ann_colors)
+
+dev.off()
+
+### For subset conditions
+# Subset only selected conditions
+selected_conditions <- c("CEM", "HUT78", "HUT78+IL-15")
+
+fasl1_filtered <- fasl1_summary %>%
+  filter(Condition %in% selected_conditions)
+
+# Reshape for heatmap
+fasl1_matrix_sub <- fasl1_filtered %>%
+  pivot_longer(cols = all_of(marker_cols), names_to = "Marker", values_to = "Expression") %>%
+  unite("Group", Condition, FASL_1, sep = "_") %>%
+  pivot_wider(names_from = Group, values_from = Expression) %>%
+  column_to_rownames("Marker")
+
+# Reorder annotation info
+col_groups_sub <- colnames(fasl1_matrix_sub)
+annotation_info_sub <- data.frame(
+  Condition = gsub("_FASL.*", "", col_groups_sub),
+  FASL_Status = gsub(".*_FASL", "FASL", col_groups_sub),
+  row.names = col_groups_sub
+)
+
+# Enforce desired order: Condition then FASL+ before FASL-
+ordered_cols_sub <- annotation_info_sub %>%
+  mutate(FASL_order = ifelse(FASL_Status == "FASL+", 1, 2)) %>%
+  arrange(Condition, FASL_order) %>%
+  rownames()
+
+# Reorder matrix and annotation
+fasl1_matrix_sub <- fasl1_matrix_sub[, ordered_cols_sub]
+annotation_info_sub <- annotation_info_sub[ordered_cols_sub, ]
+
+# Subset annotation colors to only include the conditions present
+ann_colors_sub <- list(
+  Condition = ann_colors$Condition[names(ann_colors$Condition) %in% annotation_info_sub$Condition],
+  FASL_Status = ann_colors$FASL_Status
+)
+
+# Plot heatmap
+pheatmap(as.matrix(fasl1_matrix_sub),
+         main = "FASL+ vs FASL- in CEM, HUT78, HUT78+IL15",
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         scale = "row",
+         annotation_col = annotation_info_sub,
+         annotation_colors = ann_colors_sub)
+
+png("FASL_cutoff1_heatmap_CEM_HUT_Only.png", width = 2000, height = 3000, res = 300)
+
+pheatmap(as.matrix(fasl1_matrix_sub),
+         main = "FASL+ vs FASL- in CEM, HUT78, HUT78+IL15",
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         scale = "row",
+         annotation_col = annotation_info_sub,
+         annotation_colors = ann_colors_sub)
+
+dev.off()
