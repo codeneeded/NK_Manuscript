@@ -43,7 +43,7 @@ tara_Freq <- tara_Freq%>%
 
 tara_Freq <- tara_Freq %>%
   filter(HIV != "HUU")
-
+tara_Freq$HIV <- recode(tara_Freq$HIV, "HEI" = "pHIV", "HEU" = "pHEU")
 
 TARA_HUT78_Freq <- tara_Freq %>%
   filter(Treatment == "HUT78")
@@ -287,82 +287,76 @@ get_all_model_summaries <- function(models_list) {
 }
 ##########
 plot_significant_relationship <- function(data, x_var, y_var = "Specific Killing", facet_var = "Timepoint") {
-  
-  # Check if facet_var exists in the data; if not, stop with an error message
-  if (!(facet_var %in% colnames(data))) {
-    stop(paste("Column", facet_var, "is not found in the dataset. Please check your input."))
+  # ==== 1. Input Checks ====
+  if (!all(c(x_var, y_var, facet_var) %in% colnames(data))) {
+    stop("One or more variables (x_var, y_var, or facet_var) not found in the dataset.")
   }
   
-  # Calculate the global Pearson correlation for the entire dataset before faceting
-  pearson_correlation <- cor(data[[x_var]], data[[y_var]], method = "pearson")
-  pearson_p_value <- cor.test(data[[x_var]], data[[y_var]], method = "pearson")$p.value
-  
-  # Create a common label for the global Pearson correlation
-  global_correlation_label <- paste0(
-    "Global Pearson r = ", round(pearson_correlation, 2), ", p = ", signif(pearson_p_value, 3)
+  # ==== 2. Global Correlation ====
+  global_cor <- suppressWarnings(cor.test(data[[x_var]], data[[y_var]], method = "pearson"))
+  global_label <- paste0(
+    "Global Pearson r = ", round(global_cor$estimate, 2),
+    ", p = ", signif(global_cor$p.value, 3)
   )
   
-  # Calculate individual Pearson correlation for each facet (timepoint)
-  correlation_results <- data %>%
-    group_by_at(facet_var) %>%
-    summarize(
-      pearson_correlation = cor(.data[[x_var]], .data[[y_var]], method = "pearson"),
-      pearson_p_value = cor.test(.data[[x_var]], .data[[y_var]], method = "pearson")$p.value
-    ) %>%
-    mutate(
-      label = paste0(
-        "Pearson r = ", round(pearson_correlation, 2), ", p = ", signif(pearson_p_value, 3)
-      )
+  # ==== 3. Correlation per facet ====
+  split_data <- split(data, data[[facet_var]])
+  correlation_results <- do.call(rbind, lapply(names(split_data), function(facet_value) {
+    subset <- split_data[[facet_value]]
+    cor_result <- suppressWarnings(cor.test(subset[[x_var]], subset[[y_var]], method = "pearson"))
+    data.frame(
+      facet = facet_value,
+      r = cor_result$estimate,
+      p = cor_result$p.value,
+      label = paste0("Pearson r = ", round(cor_result$estimate, 2),
+                     ", p = ", signif(cor_result$p.value, 3)),
+      stringsAsFactors = FALSE
     )
+  }))
+  colnames(correlation_results)[1] <- facet_var
+  correlation_results[[facet_var]] <- factor(correlation_results[[facet_var]],
+                                             levels = unique(data[[facet_var]]))
   
-  # Calculate a common y_max for all facets based on the highest value across all facets
-  common_y_max <- max(data[[y_var]], na.rm = TRUE) * 1.2  # 20% above the maximum y-value for more space
+  # ==== 4. Plot ====
+  common_y_max <- max(data[[y_var]], na.rm = TRUE) * 1.2
   
-  # Create the plot with the global correlation in the subtitle
-  p <- ggplot(data, aes_string(x = paste0("`", x_var, "`"), y = paste0("`", y_var, "`"), group = facet_var)) +
-    geom_point(aes(color = HIV), size = 4.5, alpha = 0.8) +  # Color points by HIV status
-    geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "solid", size = 1.2) +  # Regression line
+  p <- ggplot(data, aes(x = .data[[x_var]], y = .data[[y_var]])) +
+    geom_point(aes(color = HIV), size = 4.5, alpha = 0.8) +
+    geom_smooth(method = "lm", se = TRUE, color = "black", size = 1.2) +
+    facet_wrap(as.formula(paste("~", facet_var))) +
+    geom_text(
+      data = correlation_results,
+      aes(x = Inf, y = common_y_max, label = label),
+      hjust = 1.2, size = 5.5, fontface = "bold",
+      inherit.aes = FALSE, color = "black"
+    ) +
     labs(
-      title = paste(y_var, "Vs", x_var),
-      subtitle = paste("Faceted by", facet_var, "\n", global_correlation_label),  # Add global correlation to subtitle
+      title = paste(y_var, "vs", x_var),
+      subtitle = paste("Faceted by", facet_var, "\n", global_label),
       x = x_var,
       y = y_var
     ) +
-    scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Custom colors for HIV status
-    facet_wrap(as.formula(paste("~", facet_var))) +  # Facet by facet_var
+    scale_color_manual(values = c("pHIV" = "#fc913f", "pHEU" = "#5bbae3")) +
     theme_minimal(base_size = 19) +
     theme(
       legend.position = "top",
       legend.title = element_blank(),
-      legend.text = element_text(size = 16),  # Increase text size for HEI and HEU
+      legend.text = element_text(size = 16),
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_rect(fill = "#f7f7f7", color = NA),
       plot.title = element_text(face = "bold", hjust = 0.5),
-      plot.subtitle = element_text(hjust = 0.5),  # Ensure the subtitle is centered
+      plot.subtitle = element_text(hjust = 0.5),
       axis.title = element_text(face = "bold"),
       strip.background = element_rect(fill = "#e0e0e0", color = NA),
       strip.text = element_text(face = "bold")
-    ) +
-    # Add individual Pearson correlation annotations for each facet (inside facet)
-    geom_text(
-      data = correlation_results,
-      aes(
-        x = Inf, y = common_y_max, 
-        label = label
-      ),
-      hjust = 1.2, color = "black", size = 5.5, fontface = "bold",  # Center aligned with hjust = 0.5
-      inherit.aes = FALSE
     )
   
   return(p)
-  
 }
-plot_significant_relationship(data = TARA_Untreated_Freq_K562, x_var = 'KLRG1', facet_var = 'Timepoint')
-ggsave('test.png', width = 8.5, height = 6, dpi = 300, bg = 'white')
 
-# Display the correlation results per timepoint
-print(correlation_results)
+
+##########
 
 sig_relationships_florah <- function(data, x_var, y_var = "Specific Killing") {
   
@@ -394,12 +388,12 @@ sig_relationships_florah <- function(data, x_var, y_var = "Specific Killing") {
       x = x_var,
       y = y_var
     ) +
-    scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Custom colors for HIV status
+    scale_color_manual(values = c("pHIV" = "#fc913f", "pHEU" = "#5bbae3")) +  # Custom colors for HIV status
     theme_minimal(base_size = 16) +
     theme(
       legend.position = "top",
       legend.title = element_blank(),
-      legend.text = element_text(size = 16),  # Increase text size for HEI and HEU
+      legend.text = element_text(size = 16),  # Increase text size for pHIV and pHEU
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_rect(fill = "#f7f7f7", color = NA),
@@ -413,7 +407,7 @@ sig_relationships_florah <- function(data, x_var, y_var = "Specific Killing") {
         x = Inf, y = y_max,
         label = paste0("Pearson r = ", round(pearson_correlation, 2), ", p = ", signif(pearson_p_value, 3))
       ),
-      hjust = 1.3, color = "black", size = 4.5, fontface = "bold",
+      hjust = 1.5, color = "black", size = 4.5, fontface = "bold",
       inherit.aes = FALSE
     ) +
     # Add Spearman correlation annotation slightly below Pearson's
@@ -438,7 +432,7 @@ plot_effect_estimates <- function(results) {
   # Replace 'Timepoint12' with just 'Timepoint' for easier interpretation
   results$Effect_no_backticks <- gsub("Timepoint12", "Timepoint", results$Effect_no_backticks)
   results$Effect_no_backticks <- gsub("gendermale", "Male", results$Effect_no_backticks)
-  results$Effect_no_backticks <- gsub("HIVHEI", "HEI", results$Effect_no_backticks)
+  results$Effect_no_backticks <- gsub("HIVpHIV", "pHIV", results$Effect_no_backticks)
   
   # Combine Subset and Effect into a single column, but only display the effect once if it's the same as the subset
   results$EffectLabel <- ifelse(results$Effect_no_backticks == results$Subset, 
@@ -463,8 +457,7 @@ plot_effect_estimates <- function(results) {
     theme(plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),  # Centered title
           plot.margin = margin(1, 1, 1, 1, "cm"))
 }
-plot_effect_estimates(HUT78_SK_sm)
-ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_significant.png", width = 9, height = 5, dpi = 300,bg='white')
+
 ######### HUT 78 - TARA ##########
 
 setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/HUT78")
@@ -476,10 +469,6 @@ HUT78_SK_sm <- summarize_models(HUT78_SK_ml)
 plot_effect_estimates(HUT78_SK_sm)
 ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_significant.png", width = 9, height = 5, dpi = 300,bg='white')
 ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_significant_transparent_poster.png", width = 9, height = 6.6, dpi = 300,bg='transparent')
-
-HUT78_SK_plot <- plot_significant_effects (HUT78_SK_sm)
-ggsave("Flow_Effects_on_Specific_Killing_HUT78_TARA_Freq_significant_only.png", width = 14, height = 6, dpi = 300,bg='white',HUT78_SK_plot)
-
 
 ###########
 # Initialize an empty list to store plots
@@ -525,15 +514,10 @@ K562_SK_sm_filtered <- K562_SK_sm %>%
 K562_SK_sm_filtered
 
 
-
-
 plot_effect_estimates(K562_SK_sm_filtered)
 
 ggsave("Mixed_Effects_Models_Forrest_Plot_K562_significant.png", width = 9, height = 6.6, dpi = 300,bg='white')
 
-
-K562_SK_plot <- plot_significant_effects (K562_SK_sm)
-ggsave("Flow_Effects_on_Specific_Killing_K562_TARA_Freq_significant_only.png", width = 35, height = 8, dpi = 300,bg='white',K562_SK_plot)
 
 # Initialize an empty list to store plots
 plot_list <- list()
@@ -583,10 +567,6 @@ K562_U_SK_sm_filtered_2 <- K562_U_SK_sm_filtered %>%
 plot_effect_estimates(K562_U_SK_sm_filtered_2)
 ggsave("Mixed_Effects_Models_Forrest_Plot_K562_Untreated__significant.png", width = 9, height = 8, dpi = 300,bg='white')
 
-
-K562_U_SK_plot <- plot_significant_effects (K562_U_SK_sm)
-ggsave("Flow_Effects_on_Specific_Killing_K562_Untreated_TARA_Freq_significant_only.png", width = 35, height = 7, dpi = 300,bg='white',K562_U_SK_plot)
-
 # Initialize an empty list to store plots
 plot_list <- list()
 
@@ -594,9 +574,9 @@ plot_list <- list()
 for (i in 1:nrow(K562_U_SK_sm)) {
   significant_var <- gsub("`", "", K562_U_SK_sm$Effect[i])
   
-  # Skip if significant_var is "gendermale" or "HIVHEI"
-  if (significant_var %in% c("gendermale", "HIVHEI")) {
-    next  # Skip to the next iteration if "gendermale" or "HIVHEI"
+  # Skip if significant_var is "gendermale" or "HIVpHIV"
+  if (significant_var %in% c("gendermale", "HIVpHIV")) {
+    next  # Skip to the next iteration if "gendermale" or "HIVpHIV"
   }
   
   # Generate the plot and save it to the list
@@ -615,9 +595,6 @@ for (name in names(plot_list)) {
   ggsave(filename = file_name, plot = plot_list[[name]], width = 9, height = 6, dpi = 300, bg = 'white')
 }
 
-plot_significant_relationship(data = TARA_Untreated_Freq_K562, x_var = 'KLRG1', facet_var = 'HIV')  + ggtitle("Specific Killing VS KLRG1 (K562 Before Co-culture)")
-ggsave("Flow_Effects_on_Specific_Killing_K562_Untreated_TARA_Freq_KLRG1_HIV.png", width = 9, height = 6, dpi = 300,bg='white')
-
 ### HUT78 
 
 setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/TARA/Untreated/HUT78_Specific_Killing")
@@ -629,14 +606,6 @@ HUT78_U_SK_sm <- summarize_models(HUT78_U_SK_ml)
 plot_effect_estimates(HUT78_U_SK_sm)
 ggsave("Mixed_Effects_Models_Forrest_Plot_HUT78_Untreated__significant.png", width = 9, height = 4, dpi = 300,bg='white')
 
-HUT78_U_SK_ml
-
-ggsave("Mixed_Effects_Models_Forrest_Plot_K562_Untreated__significant.png", width = 14, height = 6, dpi = 300,bg='white')
-
-
-HUT78_U_SK_plot <- plot_significant_effects (HUT78_U_SK_sm)
-ggsave("Flow_Effects_on_Specific_Killing_HUT78_Untreated_TARA_Freq_significant_only.png", width = 35, height = 8, dpi = 300,bg='white',HUT78_U_SK_plot)
-
 # Initialize an empty list to store plots
 plot_list <- list()
 
@@ -644,9 +613,9 @@ plot_list <- list()
 for (i in 1:nrow(HUT78_U_SK_sm)) {
   significant_var <- gsub("`", "", HUT78_U_SK_sm$Effect[i])
   
-  # Skip if significant_var is "gendermale" or "HIVHEI"
+  # Skip if significant_var is "gendermale" or "HIVpHIV"
   if (significant_var %in% c("gendermale", "Timepoint12")) {
-    next  # Skip to the next iteration if "gendermale" or "HIVHEI"
+    next  # Skip to the next iteration if "gendermale" or "HIVpHIV"
   }
   
   # Generate the plot and save it to the list
@@ -665,8 +634,6 @@ for (name in names(plot_list)) {
   ggsave(filename = file_name, plot = plot_list[[name]], width = 9, height = 6, dpi = 300, bg = 'white')
 }
 
-plot_significant_relationship(data = TARA_Untreated_Freq_HUT78, x_var = 'KLRG1', facet_var = 'gender') + ggtitle("Specific Killing VS KLRG1 (HUT78 Before Co-culture)")
-ggsave("Flow_Effects_on_Specific_Killing_HUT78_Untreated_TARA_Freq_KLRG1_GENDER.png", width = 9, height = 6, dpi = 300,bg='white')
 
 ###########
 library(patchwork)
@@ -1015,7 +982,7 @@ plot_scatter <- function(data, x_var = "KLRG1", y_var = "Specific Killing", colo
   # Define custom colors based on the color variable
   color_mapping <- case_when(
     color_var == "gender" ~ c("male" = "#FF6347", "female" = "#32CD32"),  # Red & Green
-    color_var == "HIV" ~ c("HEI" = "#fc913f", "HEU" = "#5bbae3"),  #
+    color_var == "HIV" ~ c("pHIV" = "#fc913f", "pHEU" = "#5bbae3"),  #
     color_var == "Timepoint" ~ c("Entry" = "#228B22", "12" = "#800080"),  # Dark Green & Purple
     TRUE ~ c("default" = "#000000")  # Black for any undefined case
   )
@@ -1057,7 +1024,7 @@ setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/Supplimentary_
 
 ### Keep plotting columns
 K562_U_SK_sm_filtered_plot <- K562_U_SK_sm_filtered_2 %>%
-  filter(Effect %in% c("HIVHEI", "gendermale", "Timepoint12"))
+  filter(Effect %in% c("HIVpHIV", "gendermale", "Timepoint12"))
 
 
 # Modify the 'Effect' column to match the required replacements
@@ -1065,7 +1032,7 @@ K562_U_SK_sm_filtered_plot <- K562_U_SK_sm_filtered_plot %>%
   mutate(Effect = case_when(
     Effect == "gendermale" ~ "gender",
     Effect == "Timepoint12" ~ "Timepoint",
-    Effect == "HIVHEI" ~ "HIV",
+    Effect == "HIVpHIV" ~ "HIV",
     TRUE ~ Effect  # Keep everything else unchanged
   ))
 
@@ -1094,7 +1061,7 @@ setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/Supplimentary_
 
 ### Keep plotting columns
 HUT78_U_SK_sm_plot <- HUT78_U_SK_sm %>%
-  filter(Effect %in% c("HIVHEI", "gendermale", "Timepoint12"))
+  filter(Effect %in% c("HIVpHIV", "gendermale", "Timepoint12"))
 
 
 # Modify the 'Effect' column to match the required replacements
@@ -1102,7 +1069,7 @@ HUT78_U_SK_sm_plot <- HUT78_U_SK_sm_plot %>%
   mutate(Effect = case_when(
     Effect == "gendermale" ~ "gender",
     Effect == "Timepoint12" ~ "Timepoint",
-    Effect == "HIVHEI" ~ "HIV",
+    Effect == "HIVpHIV" ~ "HIV",
     TRUE ~ Effect  # Keep everything else unchanged
   ))
 
@@ -1131,7 +1098,7 @@ setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/Supplimentary_
 
 ### Keep plotting columns
 K562_SK_sm_filtered_plot <- K562_SK_sm_filtered %>%
-  filter(Effect %in% c("HIVHEI", "gendermale", "Timepoint12"))
+  filter(Effect %in% c("HIVpHIV", "gendermale", "Timepoint12"))
 
 
 # Modify the 'Effect' column to match the required replacements
@@ -1139,7 +1106,7 @@ K562_SK_sm_filtered_plot <- K562_SK_sm_filtered_plot %>%
   mutate(Effect = case_when(
     Effect == "gendermale" ~ "gender",
     Effect == "Timepoint12" ~ "Timepoint",
-    Effect == "HIVHEI" ~ "HIV",
+    Effect == "HIVpHIV" ~ "HIV",
     TRUE ~ Effect  # Keep everything else unchanged
   ))
 
@@ -1168,7 +1135,7 @@ setwd("C:/Users/ammas/Documents/NK_Manuscript/Mixed_Effects_Model/Supplimentary_
 
 ### Keep plotting columns
 HUT78_SK_sm_plot <- HUT78_SK_sm %>%
-  filter(Effect %in% c("HIVHEI", "gendermale", "Timepoint12"))
+  filter(Effect %in% c("HIVpHIV", "gendermale", "Timepoint12"))
 
 
 # Modify the 'Effect' column to match the required replacements
@@ -1176,7 +1143,7 @@ HUT78_SK_sm_plot <- HUT78_SK_sm_plot %>%
   mutate(Effect = case_when(
     Effect == "gendermale" ~ "gender",
     Effect == "Timepoint12" ~ "Timepoint",
-    Effect == "HIVHEI" ~ "HIV",
+    Effect == "HIVpHIV" ~ "HIV",
     TRUE ~ Effect  # Keep everything else unchanged
   ))
 
