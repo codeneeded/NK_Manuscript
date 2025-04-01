@@ -51,42 +51,43 @@ columns_to_plot <- colnames(tara_untreated)[21:ncol(tara_untreated)]
 
 # Step 2: Loop through each column and create/save the plot
 for (column_name in columns_to_plot) {
-  # Step 3: Create the plot for the current column
   plot <- ggplot(tara_untreated %>% filter(!is.na(!!sym(column_name))), 
                  aes(x = HIV, y = !!sym(column_name), fill = HIV)) +
-    geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-    geom_jitter(aes(color = HIV), width = 0.2, size = 2, alpha = 0.7) +  # Jitter for individual points
-    facet_wrap(~ Timepoint, scales = "free_x", nrow = 1) +  # Split by Timepoint in one row
+    geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +
+    geom_jitter(aes(color = HIV), width = 0.2, size = 2, alpha = 0.7) +
+    facet_wrap(~ Timepoint, scales = "free_x", nrow = 1) +
     stat_compare_means(comparisons = list(c("HEI", "HEU")), 
                        method = "wilcox.test", 
                        label = 'p.format') +
     labs(title = column_name,
          x = "HIV Status",
-         y = paste("Expression Frequency (% of Total NK)")) +
+         y = "Expression Frequency (% of Total NK)") +
     theme_minimal() +
-    scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Custom colors for HEI and HEU
-    scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Custom colors for jitter points
+    scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3"),
+                      labels = c("HEI" = "pHIV", "HEU" = "pHEU")) +
+    scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3"),
+                       labels = c("HEI" = "pHIV", "HEU" = "pHEU")) +
+    scale_x_discrete(labels = c("HEI" = "pHIV", "HEU" = "pHEU")) +
     theme(
-      plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-      axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-      axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-      axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-      axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-      strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-      strip.placement = "outside",  # Moves facet label outside
-      panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-      legend.position = "none"  # Remove legend if not needed
+      plot.title = element_text(hjust = 0.5, size = 18, face = "bold", colour = 'black'),
+      axis.title.x = element_text(size = 18, margin = margin(t = 15), colour = 'black'),
+      axis.title.y = element_text(size = 18, colour = 'black'),
+      axis.text.x = element_text(size = 18, colour = 'black'),
+      axis.text.y = element_text(size = 16, colour = 'black'),
+      strip.text = element_text(size = 17, colour = 'black'),
+      strip.placement = "outside",
+      panel.spacing = unit(1, "lines"),
+      legend.position = "none"
     )
-  # Create a safe filename by replacing special characters with an underscore
+  
   safe_column_name <- gsub("[^[:alnum:]_]", "_", column_name)
   
-  # Step 4: Save the plot using ggsave
-  ggsave(filename = paste0( safe_column_name, "_HEIvsHEU.png"), 
+  ggsave(filename = paste0(safe_column_name, "_pHIVvspHEU.png"), 
          plot = plot, 
          width = 8.5, 
          height = 5, 
          dpi = 300, 
-         bg = "white")  # Specify background color as white
+         bg = "white")
 }
 
 ### FLORAH
@@ -188,394 +189,85 @@ nkiller_plot$timepoint.2 <- factor(nkiller_plot$timepoint.2,
 
 # Create the plot with -test and significance stars, split by Timepoint
 # Create the plot with all facets in one row and custom order
+library(ggplot2)
+library(ggpubr)
 
-### TOTAL NK ###
+# Define common fill/color mapping
+group_colors <- c("HEI" = "#fc913f", "HEU" = "#5bbae3")
+group_labels <- c("HEI" = "pHIV", "HEU" = "pHEU")
 
-ggplot(nkiller_plot, aes(x = Group, y = Total_NK, fill = Group)) +
-  geom_boxplot(alpha = 0.7, outlier.shape = NA, width = 0.4) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("Total NK in CD45"^"+"~"Lymphocytes") ,
-       x = "HIV Status",
-       y = "Total NK (%)") +
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-ggsave(paste0(out.path.2,"HEIvsHEU_Total_NK_percent.png"),bg='white', height = 5, width = 8.5)
+# List of plots with y-variable, title, y-label, and output name
+plot_info <- list(
+  list(y = "Total_NK", title = expression("Total NK in CD45"^"+"~"Lymphocytes"),
+       ylab = "Total NK (%)", file = "Total_NK_percent"),
+  
+  list(y = "NKbright", title = expression("CD56"^"bright"*"CD16"^"-"~"in CD45"^"+"~"Lymphocytes"),
+       ylab = expression("CD56"^"bright"*"CD16"^"-"~"(%)"), file = "CD56bright_percent_CD45L"),
+  
+  list(y = "NK_CD56-CD16+", title = expression("CD56"^"-"*"CD16"^"+"~"in CD45"^"+"~"Lymphocytes"),
+       ylab = expression("CD56"^"-"*"CD16"^"+"~"(%)"), file = "CD56-CD16+_percent_CD45L"),
+  
+  list(y = "NKdim_CD16+", title = expression("CD56"^"dim"*"CD16"^"+"~"in CD45"^"+"~"Lymphocytes"),
+       ylab = expression("CD56"^"dim"*"CD16"^"+"~"(%)"), file = "CD56dimCD16+_percent_CD45L"),
+  
+  list(y = "Total_NK/NKG2A+", title = expression("NKG2A"^"+"~"in CD45"^"+"~"Lymphocytes"),
+       ylab = expression("NKG2A"^"+"~"(%)"), file = "NKG2A+_percent_CD45L"),
+  
+  list(y = "Total_NK/CD38+", title = expression("CD38"^"+"~"in CD45"^"+"~"Lymphocytes"),
+       ylab = expression("CD38"^"+"~"(%)"), file = "CD38+_percent_CD45L"),
+  
+  list(y = "NK_CD56-CD16+/NKG2A+", title = expression("CD56"^"-"*"CD16"^"+"~"NKG2A"^"+"~"in CD45"^"+"~"Lymphocytes"),
+       ylab = expression("CD56"^"-"*"CD16"^"+"~"NKG2A"^"+"~"(%)"), file = "CD56-CD16+NKG2A+_percent_CD45L"),
+  
+  list(y = "NK_CD56-CD16+/CD38+", title = expression("CD56"^"-"*"CD16"^"+"~"CD38"^"+"~"in CD45"^"+"~"Lymphocytes"),
+       ylab = expression("CD56"^"-"*"CD16"^"+"~"CD38"^"+"~"(%)"), file = "CD56-CD16+CD38+_percent_CD45L"),
+  
+  list(y = "NKdim_CD16+/NKG2A+", title = expression("CD56"^"dim"*"CD16"^"+"~"NKG2A"^"+"~"in CD45"^"+"~"Lymphocytes"),
+       ylab = expression("CD56"^"dim"*"CD16"^"+"~"NKG2A"^"+"~"(%)"), file = "CD56dimCD16+NKG2A+_percent_CD45L"),
+  
+  list(y = "NKdim_CD16+/CD38+", title = expression("CD56"^"dim"*"CD16"^"+"~"CD38"^"+"~"in CD45"^"+"~"Lymphocytes"),
+       ylab = expression("CD56"^"dim"*"CD16"^"+"~"CD38"^"+"~"(%)"), file = "CD56dimCD16+CD38+_percent_CD45L"),
+  
+  list(y = "NKbright/NKG2A+", title = expression("CD56"^"bright"*"CD16"^"-"*"NKG2A"^"+"~"in CD45"^"+"~"Lymphocytes"),
+       ylab = expression("CD56"^"bright"*"CD16"^"-"*"NKG2A"^"+"~"(%)"), file = "CD56bright_NKG2A+_percent_CD45L"),
+  
+  list(y = "NKbright/CD38+", title = expression("CD56"^"bright"*"CD16"^"-"*"CD38"^"+"~"in CD45"^"+"~"Lymphocytes"),
+       ylab = expression("CD56"^"bright"*"CD16"^"-"*"CD38"^"+"~"(%)"), file = "CD38+_percent_CD45L")
+)
 
-### CD56bright CD16neg ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot, aes(x = Group, y = NKbright, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"bright"*"CD16"^"-"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"bright"*"CD16"^"-"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
+# Loop through and generate plots
+for (info in plot_info) {
+  p <- ggplot(nkiller_plot, aes(x = Group, y = .data[[info$y]], fill = Group)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +
+    geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +
+    labs(title = info$title,
+         x = "HIV Status",
+         y = info$ylab) +
+    theme_minimal() +
+    scale_fill_manual(values = group_colors, labels = group_labels) +
+    scale_color_manual(values = group_colors, labels = group_labels) +
+    scale_x_discrete(labels = group_labels) +
+    stat_compare_means(comparisons = list(c("HEI", "HEU")),
+                       method = "wilcox.test",
+                       label = "p.format") +
+    facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 18, face = "bold", colour = 'black'),
+      axis.title.x = element_text(size = 18, margin = margin(t = 15), colour = 'black'),
+      axis.title.y = element_text(size = 18, colour = 'black'),
+      axis.text.x = element_text(size = 18, colour = 'black'),
+      axis.text.y = element_text(size = 16, colour = 'black'),
+      strip.text = element_text(size = 17, colour = 'black'),
+      strip.placement = "outside",
+      panel.spacing = unit(1, "lines"),
+      legend.position = "none"
+    )
+  
+  ggsave(filename = paste0(out.path.2, "HEIvsHEU_", info$file, ".png"),
+         plot = p, height = 5, width = 8.5, dpi = 300, bg = "white")
+}
 
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56bright_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
-### CD56-CD16+ ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot, aes(x = Group, y = `NK_CD56-CD16+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"-"*"CD16"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"-"*"CD16"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56-CD16+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
-### CD56dimCD16+ ###
-
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot, aes(x = Group, y = `NKdim_CD16+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"dim"*"CD16"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"dim"*"CD16"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56dimCD16+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
-### NKG2A ###
-
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot, aes(x = Group, y = `Total_NK/NKG2A+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("NKG2A"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("NKG2A"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_NKG2A+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
-### NKG2A for each subset
-
-ggplot(nkiller_plot, aes(x = Group, y = `Total_NK/NKG2A+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("NKG2A"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("NKG2A"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_NKG2A+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
-
-
-
-
-
-
-### CD38 ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot, aes(x = Group, y = `Total_NK/CD38+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD38"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD38"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD38+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
-###CD56-CD16+ NKG2A ###
-
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot, aes(x = Group, y = `NK_CD56-CD16+/NKG2A+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"-"*"CD16"^"+"~"NKG2A"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"-"*"CD16"^"+"~"NKG2A"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56-CD16+NKG2A+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
-### CD56-CD16+ CD38 ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot, aes(x = Group, y = `NK_CD56-CD16+/CD38+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"-"*"CD16"^"+"~"CD38"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"-"*"CD16"^"+"~"CD38"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56-CD16+CD38+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
-###CD56dimCD16+ NKG2A ###
-
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot, aes(x = Group, y = `NKdim_CD16+/NKG2A+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"dim"*"CD16"^"+"~"NKG2A"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"dim"*"CD16"^"+"~"NKG2A"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56dimCD16+NKG2A+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
-### CD56dimCD16+ CD38 ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot, aes(x = Group, y = `NKdim_CD16+/CD38+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"dim"*"CD16"^"+"~"CD38"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"dim"*"CD16"^"+"~"CD38"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56dimCD16+CD38+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
-###  NKbright NKG2A ###
-
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot, aes(x = Group, y = `NKbright/NKG2A+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"bright"*"CD16"^"-"*"NKG2A"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"bright"*"CD16"^"-"*"NKG2A"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56bright_NKG2A+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
-### NKbright  CD38 ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot, aes(x = Group, y = `NKbright/CD38+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"bright"*"CD16"^"-"*"CD38"^"+"~"in CD45"^"+"~"Lymphocytes"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"bright"*"CD16"^"-"*"CD38"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD38+_percent_CD45L.png"),bg='white', height = 5, width = 8.5)
-
+########################### % of total NK   ##################################################################
 ### Adjust columns of interest to percent of Total NK from % of total CD45 Lymphocytes
 nkiller_plot.2 <- nkiller_plot
 nkiller_plot.2$Total_NK <- (nkiller_plot.2$Total_NK/100)*nkiller_plot.2$NKpanel_CD45_Raw_Counts
@@ -591,366 +283,140 @@ nkiller_plot.2$`NK_CD56-CD16+/NKG2A+`<- ((nkiller_plot.2$`NK_CD56-CD16+/NKG2A+`/
 nkiller_plot.2$`NKbright/CD38+`<- ((nkiller_plot.2$`NKbright/CD38+`/100)*nkiller_plot.2$NKpanel_CD45_Raw_Counts)*(100/nkiller_plot.2$Total_NK)
 nkiller_plot.2$`NKbright/NKG2A+`<- ((nkiller_plot.2$`NKbright/NKG2A+`/100)*nkiller_plot.2$NKpanel_CD45_Raw_Counts)*(100/nkiller_plot.2$Total_NK)
 
-###### Boxplot To Total NK #######
 
-### CD56bright CD16neg ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot.2, aes(x = Group, y = NKbright, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"bright"*"CD16"^"-"~"in Total NK"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"bright"*"CD16"^"-"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
+group_colors <- c("HEI" = "#fc913f", "HEU" = "#5bbae3")
+group_labels <- c("HEI" = "pHIV", "HEU" = "pHEU")
 
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56bright_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
+# Define all the plots for Total NK %
+plot_totalnk_info <- list(
+  list(y = "NKbright",
+       title = expression("CD56"^"bright"*"CD16"^"-"~"in Total NK"),
+       ylab = expression("CD56"^"bright"*"CD16"^"-"~"(%)"),
+       file = "CD56bright_percent_TotalNK"),
+  
+  list(y = "NK_CD56-CD16+",
+       title = expression("CD56"^"-"*"CD16"^"+"~"in Total NK"),
+       ylab = expression("CD56"^"-"*"CD16"^"+"~"(%)"),
+       file = "CD56-CD16+_percent_TotalNK"),
+  
+  list(y = "NKdim_CD16+",
+       title = expression("CD56"^"dim"*"CD16"^"+"~"in Total NK"),
+       ylab = expression("CD56"^"dim"*"CD16"^"+"~"(%)"),
+       file = "CD56dimCD16+_percent_TotalNK"),
+  
+  list(y = "Total_NK/NKG2A+",
+       title = expression("NKG2A"^"+"~"in Total NK"),
+       ylab = expression("NKG2A"^"+"~"(%)"),
+       file = "NKG2A+_percent_TotalNK"),
+  
+  list(y = "Total_NK/CD38+",
+       title = expression("CD38"^"+"~"in Total NK"),
+       ylab = expression("CD38"^"+"~"(%)"),
+       file = "CD38+_percent_TotalNK"),
+  
+  list(y = "NK_CD56-CD16+/NKG2A+",
+       title = expression("CD56"^"-"*"CD16"^"+"~"NKG2A"^"+"~"in Total NK"),
+       ylab = expression("CD56"^"-"*"CD16"^"+"~"NKG2A"^"+"~"(%)"),
+       file = "CD56-CD16+NKG2A+_percent_TotalNK"),
+  
+  list(y = "NK_CD56-CD16+/CD38+",
+       title = expression("CD56"^"-"*"CD16"^"+"~"CD38"^"+"~"in Total NK"),
+       ylab = expression("CD56"^"-"*"CD16"^"+"~"CD38"^"+"~"(%)"),
+       file = "CD56-CD16+CD38+_percent_TotalNK"),
+  
+  list(y = "NKdim_CD16+/NKG2A+",
+       title = expression("CD56"^"dim"*"CD16"^"+"~"NKG2A"^"+"~"in Total NK"),
+       ylab = expression("CD56"^"dim"*"CD16"^"+"~"NKG2A"^"+"~"(%)"),
+       file = "CD56dimCD16+NKG2A+_percent_TotalNK"),
+  
+  list(y = "NKdim_CD16+/CD38+",
+       title = expression("CD56"^"dim"*"CD16"^"+"~"CD38"^"+"~"in Total NK"),
+       ylab = expression("CD56"^"dim"*"CD16"^"+"~"CD38"^"+"~"(%)"),
+       file = "CD56dimCD16+CD38+_percent_TotalNK"),
+  
+  list(y = "NKbright/NKG2A+",
+       title = expression("CD56"^"bright"*"CD16"^"-"*"NKG2A"^"+"~"in Total NK"),
+       ylab = expression("CD56"^"bright"*"CD16"^"-"*"NKG2A"^"+"~"(%)"),
+       file = "CD56bright_NKG2A+_percent_TotalNK"),
+  
+  list(y = "NKbright/CD38+",
+       title = expression("CD56"^"bright"*"CD16"^"-"*"CD38"^"+"~"in Total NK"),
+       ylab = expression("CD56"^"bright"*"CD16"^"-"*"CD38"^"+"~"(%)"),
+       file = "CD56bright_CD38+_percent_TotalNK")
+)
 
-### CD56-CD16+ ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot.2, aes(x = Group, y = `NK_CD56-CD16+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"-"*"CD16"^"+"~"in Total NK"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"-"*"CD16"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56-CD16+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
-
-### CD56dimCD16+ ###
-
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot.2, aes(x = Group, y = `NKdim_CD16+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"dim"*"CD16"^"+"~"in Total NK"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"dim"*"CD16"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56dimCD16+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
-
-### NKG2A ###
-
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot.2, aes(x = Group, y = `Total_NK/NKG2A+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("NKG2A"^"+"~"in Total NK"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("NKG2A"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_NKG2A+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
-
-### CD38 ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot.2, aes(x = Group, y = `Total_NK/CD38+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD38"^"+"~"in Total NK"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD38"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD38+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
-
-
-###CD56-CD16+ NKG2A ###
-
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot.2, aes(x = Group, y = `NK_CD56-CD16+/NKG2A+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"-"*"CD16"^"+"~"NKG2A"^"+"~"in Total NK"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"-"*"CD16"^"+"~"NKG2A"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56-CD16+NKG2A+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
-
-### CD56-CD16+ CD38 ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot.2, aes(x = Group, y = `NK_CD56-CD16+/CD38+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"-"*"CD16"^"+"~"CD38"^"+"~"in Total NK"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"-"*"CD16"^"+"~"CD38"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56-CD16+CD38+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
-
-###CD56dimCD16+ NKG2A ###
-
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot.2, aes(x = Group, y = `NKdim_CD16+/NKG2A+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"dim"*"CD16"^"+"~"NKG2A"^"+"~"in Total NK"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"dim"*"CD16"^"+"~"NKG2A"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56dimCD16+NKG2A+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
-
-### CD56dimCD16+ CD38 ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot.2, aes(x = Group, y = `NKdim_CD16+/CD38+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"dim"*"CD16"^"+"~"CD38"^"+"~"in Total NK"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"dim"*"CD16"^"+"~"CD38"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56dimCD16+CD38+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
-
-###  NKbright NKG2A ###
-
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot.2, aes(x = Group, y = `NKbright/NKG2A+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"bright"*"CD16"^"-"*"NKG2A"^"+"~"in Total NK"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"bright"*"CD16"^"-"*"NKG2A"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD56bright_NKG2A+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
-
-### NKbright  CD38 ###
-# Create the plot with all facets in one row and custom order
-ggplot(nkiller_plot.2, aes(x = Group, y = `NKbright/CD38+`, fill = Group)) +
-  geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +  # Boxplot with adjusted width
-  geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +  # Jitter for individual points
-  labs(title = expression("CD56"^"bright"*"CD16"^"-"*"CD38"^"+"~"in Total NK"),  # Title with superscripts
-       x = "HIV Status",
-       y = expression("CD56"^"bright"*"CD16"^"-"*"CD38"^"+"~"(%)")) +  # Y-axis label with superscripts
-  theme_minimal() +
-  scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Fill colors for boxplot
-  scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +  # Colors for jitter points
-  stat_compare_means(comparisons = list(c("HEI", "HEU")), 
-                     method = "wilcox.test", 
-                     label = 'p.format') +  # Adjust y position for significance stars
-  facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +  # Arrange all facets in one row
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold",colour = 'black'),  # Title formatting
-    axis.title.x = element_text(size = 18, margin = margin(t = 15),colour = 'black'),  # Shifts x-axis title down
-    axis.title.y = element_text(size = 18,colour = 'black'),  # y-axis title formatting
-    axis.text.x = element_text(size = 18,colour = 'black'),  # Larger x-axis text for Group labels
-    axis.text.y = element_text(size = 16,colour = 'black'),  # y-axis text size
-    strip.text = element_text(size = 17,colour = 'black'),  # Facet label size
-    strip.placement = "outside",  # Moves facet label outside
-    panel.spacing = unit(1, "lines"),  # Adjusts space between facets
-    legend.position = "none"  # Remove legend if not needed
-  )
-
-ggsave(paste0(out.path.2,"HEIvsHEU_CD38+_percent_TotalNK.png"),bg='white', height = 5, width = 8.5)
-
-
+# Loop through and generate plots
+for (info in plot_totalnk_info) {
+  p <- ggplot(nkiller_plot.2, aes(x = Group, y = .data[[info$y]], fill = Group)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +
+    geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +
+    labs(title = info$title,
+         x = "HIV Status",
+         y = info$ylab) +
+    theme_minimal() +
+    scale_fill_manual(values = group_colors, labels = group_labels) +
+    scale_color_manual(values = group_colors, labels = group_labels) +
+    scale_x_discrete(labels = group_labels) +
+    stat_compare_means(comparisons = list(c("HEI", "HEU")),
+                       method = "wilcox.test",
+                       label = "p.format") +
+    facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 18, face = "bold", colour = 'black'),
+      axis.title.x = element_text(size = 18, margin = margin(t = 15), colour = 'black'),
+      axis.title.y = element_text(size = 18, colour = 'black'),
+      axis.text.x = element_text(size = 18, colour = 'black'),
+      axis.text.y = element_text(size = 16, colour = 'black'),
+      strip.text = element_text(size = 17, colour = 'black'),
+      strip.placement = "outside",
+      panel.spacing = unit(1, "lines"),
+      legend.position = "none"
+    )
+  
+  ggsave(filename = paste0(out.path.2, "HEIvsHEU_", info$file, ".png"),
+         plot = p, height = 5, width = 8.5, dpi = 300, bg = "white")
+}
 
 
 
 
 ################ NKG2A and CD38 for each subset #####################
+
 out.path.3 <- "C:/Users/ammas/Documents/NK_Manuscript/Boxplots/NKG2A_CD38/"
 
-# List of the subsets and corresponding NKG2A and CD38 columns
+# Label and color settings
+group_colors <- c("HEI" = "#fc913f", "HEU" = "#5bbae3")
+group_labels <- c("HEI" = "pHIV", "HEU" = "pHEU")
+
+# Subsets and markers to plot
 subsets <- c("NKdim_CD16+", "NK_CD56-CD16+", "NKbright")
 markers <- c("NKG2A", "CD38")
 
-# Loop over each subset and create plots for both NKG2A and CD38
-for(subset in subsets) {
-  for(marker in markers) {
-    # Construct column names for the percentage of NKG2A+ or CD38+ within the subset
-    subset_col <- paste0(subset)
+# Loop over combinations
+for (subset in subsets) {
+  for (marker in markers) {
+    # Column names
+    subset_col <- subset
     marker_col <- paste0(subset, "/", marker, "+")
+    percent_col <- paste0(subset, "_", marker, "_percent")
     
-    # Calculate the percentage (column for NKG2A+ or CD38+ relative to subset)
-    nkiller_plot[[paste0(subset, "_", marker, "_percent")]] <- (nkiller_plot[[marker_col]] / nkiller_plot[[subset_col]]) * 100
+    # Calculate % marker within subset
+    nkiller_plot[[percent_col]] <- (nkiller_plot[[marker_col]] / nkiller_plot[[subset_col]]) * 100
     
-    # Generate the plot with dynamic title
-    p <- ggplot(nkiller_plot, aes(x = Group, y = get(paste0(subset, "_", marker, "_percent")), fill = Group)) +
+    # Plot
+    p <- ggplot(nkiller_plot, aes(x = Group, y = .data[[percent_col]], fill = Group)) +
       geom_boxplot(alpha = 0.7, width = 0.4, outlier.shape = NA) +
       geom_jitter(aes(color = Group), width = 0.2, size = 3, alpha = 0.8) +
-      labs(title = paste(marker, "+ in", subset),  # Dynamic title using paste
+      labs(title = bquote(.(marker)^"+"~"in"~.(subset)),
            x = "HIV Status",
-           y = paste(marker, "+ (%)")) +  # Dynamic y-axis label
+           y = bquote(.(marker)^"+"~"(%)")) +
       theme_minimal() +
-      scale_fill_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +
-      scale_color_manual(values = c("HEI" = "#fc913f", "HEU" = "#5bbae3")) +
-      stat_compare_means(comparisons = list(c("HEI", "HEU")), method = "wilcox.test", label = 'p.format') +
+      scale_fill_manual(values = group_colors, labels = group_labels) +
+      scale_color_manual(values = group_colors, labels = group_labels) +
+      scale_x_discrete(labels = group_labels) +
+      stat_compare_means(comparisons = list(c("HEI", "HEU")),
+                         method = "wilcox.test",
+                         label = "p.format") +
       facet_wrap(~ timepoint.2, scales = "free_x", nrow = 1) +
       theme(
         plot.title = element_text(hjust = 0.5, size = 18, face = "bold", colour = 'black'),
@@ -964,12 +430,13 @@ for(subset in subsets) {
         legend.position = "none"
       )
     
-    # Save the plot
-    ggsave(paste0(out.path.3, "HEIvsHEU_", subset, "_", marker, "_percent.png"), plot = p, bg='white', height = 5, width = 8.5)
+    # Save
+    ggsave(
+      filename = paste0(out.path.3, "HEIvsHEU_", subset, "_", marker, "_percent.png"),
+      plot = p, height = 5, width = 8.5, dpi = 300, bg = "white"
+    )
   }
 }
-
-
 
 
 ################################ Correlate Viral Load with Variables ##########
